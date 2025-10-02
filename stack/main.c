@@ -2,6 +2,12 @@
 
 int main(int argc, char *argv[])
 {
-  new_stack(8);
+  Stack *stack;
+  int test = 1;
+
+  stack = new_stack(8);
+
+  stack_push(stack, &test);
+
   return 0;
 }

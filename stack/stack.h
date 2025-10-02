@@ -11,5 +11,6 @@ typedef struct
 } Stack;
 
 Stack *new_stack(size_t capacity);
+int stack_push(Stack *stack, void *object);
 
 #endif
