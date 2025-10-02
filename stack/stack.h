@@ -1,7 +1,7 @@
 #ifndef _STACK_
 #define _STACK_
 
-#include <stdio.h>
+#include <stdlib.h>
 
 typedef struct
 {
@@ -12,5 +12,6 @@ typedef struct
 
 Stack *new_stack(size_t capacity);
 int stack_push(Stack *stack, void *object);
+void *stack_pop(Stack *stack);
 
 #endif
