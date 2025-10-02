@@ -1,3 +1,8 @@
 {
-  "editor.formatOnSave": true
+  "files.eol": "\n",
+  "editor.formatOnSave": true,
+  "files.associations": {
+    "*.c": "c",
+    "*.h": "c"
+  }
 }
