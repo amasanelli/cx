@@ -4,11 +4,11 @@
 
 int main(int argc, char *argv[])
 {
-  Object *object = NULL;
+  printf("%d\n", (new_integer(1))->data.INTEGER);
+  printf("%f\n", (new_float(2.0))->data.FLOAT);
 
-  object = new_integer(1);
-
-  printf("%d\n", object->data.integer);
+  printf("%f\n", (new_integer(1))->data.FLOAT);
+  printf("%d\n", (new_float(1.0))->data.INTEGER);
 
   return 0;
 }

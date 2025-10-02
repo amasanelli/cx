@@ -10,7 +10,21 @@ Object *new_integer(int value)
   }
 
   object->type = INTEGER;
-  object->data.integer = value;
+  object->data.INTEGER = value;
+
+  return object;
+}
+
+Object *new_float(float value)
+{
+  Object *object = (Object *)malloc(sizeof(Object));
+  if (object == NULL)
+  {
+    return NULL;
+  }
+
+  object->type = FLOAT;
+  object->data.FLOAT = value;
 
   return object;
 }

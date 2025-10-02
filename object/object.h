@@ -3,12 +3,14 @@
 
 typedef enum
 {
-  INTEGER
+  INTEGER,
+  FLOAT
 } Type;
 
 typedef union
 {
-  int integer;
+  int INTEGER;
+  float FLOAT;
 } Data;
 
 typedef struct
@@ -18,5 +20,6 @@ typedef struct
 } Object;
 
 Object *new_integer(int value);
+Object *new_float(float value);
 
 #endif
