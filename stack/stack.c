@@ -12,7 +12,7 @@ Stack *new_stack(size_t capacity)
     return NULL;
   }
 
-  stack = (Stack *)malloc(sizeof(Stack));
+  stack = (Stack *)calloc(1, sizeof(Stack));
   if (stack == NULL)
   {
     return NULL;
