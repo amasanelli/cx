@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include "stack.h"
 #include "definitions.h"
@@ -5,6 +6,11 @@
 Stack *new_stack(size_t capacity)
 {
   Stack *stack = NULL;
+
+  if (capacity == 0)
+  {
+    return NULL;
+  }
 
   stack = (Stack *)malloc(sizeof(Stack));
   if (stack == NULL)
@@ -28,6 +34,11 @@ int stack_push(Stack *stack, void *object)
 {
   void **temporary = NULL;
 
+  if (stack == NULL)
+  {
+    return RET_ERR;
+  }
+
   if (stack->length == stack->capacity)
   {
     stack->capacity *= 2;
@@ -49,10 +60,37 @@ int stack_push(Stack *stack, void *object)
 
 void *stack_pop(Stack *stack)
 {
-  if (stack->length == 0)
+  if (stack == NULL || stack->length == 0)
   {
     return NULL;
   }
 
   return stack->data[--stack->length];
+}
+
+void stack_free(Stack *stack)
+{
+  if (stack == NULL)
+  {
+    return;
+  }
+
+  if (stack->data != NULL)
+  {
+    free(stack->data);
+  }
+
+  free(stack);
+
+  return;
+}
+
+void *stack_peek(Stack *stack)
+{
+  if (stack == NULL || stack->length == 0)
+  {
+    return NULL;
+  }
+
+  return stack->data[stack->length - 1];
 }
