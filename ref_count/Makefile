@@ -1,12 +1,12 @@
 CC=gcc
 FLAGS=-Wall -Werror -O3 -std=gnu89 -pedantic-errors -I ./
-C_FILES=object.c
-H_FILES=object.h
+C_FILES=object.c set.c
+H_FILES=object.h set.h
 
-all: clean object
+all: clean refcount
 
-object: main.c $(C_FILES) $(H_FILES)
-	$(CC) $(FLAGS) -o object main.c $(C_FILES)
+refcount: main.c $(C_FILES) $(H_FILES)
+	$(CC) $(FLAGS) -o refcount main.c $(C_FILES)
 
 clean:
-	rm -f object
+	rm -f refcount

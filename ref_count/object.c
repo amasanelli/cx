@@ -3,16 +3,7 @@
 #include <string.h>
 #include "object.h"
 #include "definitions.h"
-
-void ref_count_dec(Object *object)
-{
-  if (object == NULL)
-  {
-    return;
-  }
-
-  object->ref_count--;
-}
+#include "set.h"
 
 void ref_count_inc(Object *object)
 {
@@ -22,6 +13,73 @@ void ref_count_inc(Object *object)
   }
 
   object->ref_count++;
+
+  return;
+}
+
+void object_free(Object *object)
+{
+  if (object == NULL)
+  {
+    return;
+  }
+
+  switch (object->type)
+  {
+  case STRING:
+    free(object->data.as_string);
+    break;
+  case ARRAY:
+    free(object->data.as_array.elements);
+    break;
+  default:
+    break;
+  }
+
+  free(object);
+
+  return;
+}
+
+void ref_count_dec_safe(Object *object, Set *visited)
+{
+  int i;
+
+  if (object == NULL || visited == NULL)
+  {
+    return;
+  }
+
+  if (!set_add(visited, object))
+  {
+    return;
+  }
+
+  if (object->type == ARRAY)
+  {
+    for (i = 0; i < object_length(object); i++)
+    {
+      ref_count_dec_safe(array_get(object, i), visited);
+    }
+  }
+
+  object->ref_count--;
+
+  if (object->ref_count == 0)
+  {
+    object_free(object);
+  }
+
+  return;
+}
+
+void ref_count_dec(Object *object)
+{
+  Set visited;
+
+  set_init(&visited);
+  ref_count_dec_safe(object, &visited);
+  set_free(&visited);
 }
 
 Object *new_object(void)
@@ -137,6 +195,7 @@ Object *new_array(size_t capacity)
 int array_append(Object *object, Object *value)
 {
   Object **temporary = NULL;
+  size_t capacity;
 
   if (object == NULL || object->type != ARRAY)
   {
@@ -145,29 +204,54 @@ int array_append(Object *object, Object *value)
 
   if (object->data.as_array.length == object->data.as_array.capacity)
   {
-    object->data.as_array.capacity *= 2;
+    capacity = object->data.as_array.capacity < MIN_CAPACITY ? MIN_CAPACITY : object->data.as_array.capacity * 2;
 
-    temporary = (Object **)realloc(object->data.as_array.elements, sizeof(Object *) * object->data.as_array.capacity);
+    temporary = (Object **)realloc(object->data.as_array.elements, sizeof(Object *) * capacity);
     if (temporary == NULL)
     {
-      object->data.as_array.capacity /= 2;
       return RET_ERR;
     }
 
+    object->data.as_array.capacity = capacity;
     object->data.as_array.elements = temporary;
   }
+
+  ref_count_inc(value);
 
   object->data.as_array.elements[object->data.as_array.length++] = value;
 
   return RET_OK;
 }
 
+int array_contains(Object *object, Object *value)
+{
+  int i;
+
+  if (object == NULL || object->type != ARRAY || value == NULL)
+  {
+    return 0;
+  }
+
+  for (i = 0; i < object_length(object); i++)
+  {
+    if (array_get(object, i) == value)
+    {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
 int array_set(Object *object, Object *value, size_t index)
 {
-  if (object == NULL || object->type != ARRAY || index >= object->data.as_array.length)
+  if (object == NULL || object->type != ARRAY || index >= object->data.as_array.length || value == NULL)
   {
     return RET_ERR;
   }
+
+  ref_count_dec(object->data.as_array.elements[index]);
+  ref_count_inc(value);
 
   object->data.as_array.elements[index] = value;
 
@@ -188,7 +272,7 @@ size_t object_length(Object *object)
 {
   if (object == NULL)
   {
-    return RET_ERR;
+    return 0;
   }
 
   switch (object->type)
@@ -201,7 +285,7 @@ size_t object_length(Object *object)
   case ARRAY:
     return object->data.as_array.length;
   default:
-    return RET_ERR;
+    return 0;
   }
 }
 

@@ -4,47 +4,79 @@
 
 int main(int argc, char *argv[])
 {
-  Object *array = NULL;
   Object *a = NULL;
   Object *b = NULL;
-  size_t i;
 
-  printf("%d\n", (new_integer(1))->data.as_int);
-  printf("%f\n", (new_float(2.0))->data.as_float);
-  printf("%s\n", (new_string("hello"))->data.as_string);
+  /*
+  Object *c = NULL;
+  Object *d = NULL;
 
-  array = new_array(1);
-  array_append(array, new_integer(2));
-  printf("%d\n", (array_get(array, 0))->data.as_int);
-  array_set(array, new_integer(1), 0);
-  printf("%d\n", (array_get(array, 0))->data.as_int);
-  array_append(array, new_integer(2));
-  array_append(array, new_integer(3));
-  array_append(array, new_integer(4));
-  array_append(array, new_integer(5));
+  a = new_integer(1);
+  printf("%d\n", a->ref_count);
 
-  for (i = 0; i < object_length(array); i++)
-  {
-    printf("%d\n", (array_get(array, i))->data.as_int);
-  }
-
-  printf("%d\n", (object_add(new_integer(1), new_integer(1)))->data.as_int);
-  printf("%f\n", (object_add(new_integer(1), new_float(1.0)))->data.as_float);
-  printf("%f\n", (object_add(new_float(1.0), new_integer(1)))->data.as_float);
-  printf("%f\n", (object_add(new_float(1.0), new_float(1.0)))->data.as_float);
-  printf("%s\n", (object_add(new_string("hello"), new_string(", world!")))->data.as_string);
-
-  a = new_array(1);
-  array_append(a, new_integer(2));
-  printf("%d\n", (array_get(a, 0))->data.as_int);
   b = new_array(1);
-  array_append(b, new_integer(1));
-  printf("%d\n", (array_get(b, 0))->data.as_int);
-  array = object_add(a, b);
-  for (i = 0; i < object_length(array); i++)
-  {
-    printf("%d\n", (array_get(array, i))->data.as_int);
-  }
+  array_append(b, a);
+  printf("%d\n", a->ref_count);
+
+  ref_count_dec(b);
+  printf("%d\n", a->ref_count);
+  b = NULL;
+
+  b = new_array(1);
+  array_append(b, a);
+  printf("%d\n", a->ref_count);
+
+  ref_count_dec(a);
+  printf("%d\n", a->ref_count);
+  a = NULL;
+
+  printf("%d\n", b->data.as_array.elements[0]->ref_count);
+
+  c = new_integer(1);
+  printf("%d\n", c->ref_count);
+
+  d = new_array(1);
+  array_append(d, c);
+  printf("%d\n", c->ref_count);
+
+  array_append(b, c);
+  printf("%d\n", c->ref_count);
+
+  ref_count_dec(b);
+  printf("%d\n", c->ref_count);
+  b = NULL;
+
+  ref_count_dec(d);
+  printf("%d\n", c->ref_count);
+  d = NULL;
+  */
+
+  a = new_array(2);
+  printf("%d\n", a->ref_count);
+
+  b = new_array(2);
+  printf("\n");
+  printf("%d\n", b->ref_count);
+
+  array_append(a, b);
+  printf("\n");
+  printf("%d\n", a->ref_count);
+  printf("%d\n", b->ref_count);
+
+  array_append(b, a);
+  printf("\n");
+  printf("%d\n", a->ref_count);
+  printf("%d\n", b->ref_count);
+
+  ref_count_dec(b);
+  printf("\n");
+  printf("%d\n", a->ref_count);
+  printf("%d\n", b->ref_count);
+
+  ref_count_dec(a);
+  printf("\n");
+  printf("%d\n", a->ref_count);
+  printf("%d\n", b->ref_count);
 
   return 0;
 }
