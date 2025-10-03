@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
   array_append(array, new_integer(4));
   array_append(array, new_integer(5));
 
-  for (i = 0; i < array->data.as_array.length; i++)
+  for (i = 0; i < object_length(array); i++)
   {
     printf("%d\n", (array_get(array, i))->data.as_int);
   }

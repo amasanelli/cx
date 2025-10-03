@@ -135,3 +135,24 @@ Object *array_get(Object *object, size_t index)
 
   return object->data.as_array.elements[index];
 }
+
+int object_length(Object *object)
+{
+  if (object == NULL)
+  {
+    return RET_ERR;
+  }
+
+  switch (object->type)
+  {
+  case INTEGER:
+  case FLOAT:
+    return 1;
+  case STRING:
+    return strlen(object->data.as_string);
+  case ARRAY:
+    return object->data.as_array.length;
+  default:
+    return RET_ERR;
+  }
+}
