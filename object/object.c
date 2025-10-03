@@ -102,6 +102,7 @@ Object *new_array(size_t capacity)
 int array_append(Object *object, Object *value)
 {
   Object **temporary = NULL;
+  size_t capacity;
 
   if (object == NULL || object->type != ARRAY)
   {
@@ -110,21 +111,41 @@ int array_append(Object *object, Object *value)
 
   if (object->data.as_array.length == object->data.as_array.capacity)
   {
-    object->data.as_array.capacity *= 2;
+    capacity = object->data.as_array.capacity < MIN_CAPACITY ? MIN_CAPACITY : object->data.as_array.capacity * 2;
 
-    temporary = (Object **)realloc(object->data.as_array.elements, sizeof(Object *) * object->data.as_array.capacity);
+    temporary = (Object **)realloc(object->data.as_array.elements, sizeof(Object *) * capacity);
     if (temporary == NULL)
     {
-      object->data.as_array.capacity /= 2;
       return RET_ERR;
     }
 
+    object->data.as_array.capacity = capacity;
     object->data.as_array.elements = temporary;
   }
 
   object->data.as_array.elements[object->data.as_array.length++] = value;
 
   return RET_OK;
+}
+
+int array_contains(Object *object, Object *value)
+{
+  int i;
+
+  if (object == NULL || object->type != ARRAY || value == NULL)
+  {
+    return 0;
+  }
+
+  for (i = 0; i < object_length(object); i++)
+  {
+    if (array_get(object, i) == value)
+    {
+      return 1;
+    }
+  }
+
+  return 0;
 }
 
 int array_set(Object *object, Object *value, size_t index)
