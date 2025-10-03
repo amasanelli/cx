@@ -33,6 +33,7 @@ Stack *new_stack(size_t capacity)
 int stack_push(Stack *stack, void *object)
 {
   void **temporary = NULL;
+  size_t capacity;
 
   if (stack == NULL)
   {
@@ -41,15 +42,15 @@ int stack_push(Stack *stack, void *object)
 
   if (stack->length == stack->capacity)
   {
-    stack->capacity *= 2;
+    capacity = stack->capacity < MIN_CAPACITY ? MIN_CAPACITY : stack->capacity * 2;
 
-    temporary = (void **)realloc(stack->data, sizeof(void *) * stack->capacity);
+    temporary = (void **)realloc(stack->data, sizeof(void *) * capacity);
     if (temporary == NULL)
     {
-      stack->capacity /= 2;
       return RET_ERR;
     }
 
+    stack->capacity = capacity;
     stack->data = temporary;
   }
 
