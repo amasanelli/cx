@@ -153,7 +153,7 @@ size_t object_length(Object *object)
 {
   if (object == NULL)
   {
-    return RET_ERR;
+    return 0;
   }
 
   switch (object->type)
@@ -166,7 +166,7 @@ size_t object_length(Object *object)
   case ARRAY:
     return object->data.as_array.length;
   default:
-    return RET_ERR;
+    return 0;
   }
 }
 
