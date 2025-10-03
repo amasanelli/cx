@@ -39,6 +39,7 @@ Object *new_array(size_t capacity);
 int array_set(Object *object, Object *value, size_t index);
 Object *array_get(Object *object, size_t index);
 int array_append(Object *object, Object *value);
-int object_length(Object *object);
+size_t object_length(Object *object);
+Object *object_add(Object *a, Object *b);
 
 #endif

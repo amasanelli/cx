@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "object.h"
 #include "definitions.h"
@@ -38,6 +39,8 @@ Object *new_float(float value)
 Object *new_string(char *value)
 {
   Object *object = NULL;
+  size_t length;
+  char *auxiliary;
 
   object = (Object *)calloc(1, sizeof(Object));
   if (object == NULL)
@@ -45,8 +48,17 @@ Object *new_string(char *value)
     return NULL;
   }
 
+  length = strlen(value);
+  auxiliary = calloc(length + 1, sizeof(char));
+  if (auxiliary == NULL)
+  {
+    free(object);
+    return NULL;
+  }
+  memcpy(auxiliary, value, length);
+
   object->type = STRING;
-  object->data.as_string = value;
+  object->data.as_string = auxiliary;
 
   return object;
 }
@@ -62,8 +74,6 @@ Object *new_array(size_t capacity)
     return NULL;
   }
 
-  memset(&array, 0, sizeof(Array));
-
   object = (Object *)calloc(1, sizeof(Object));
   if (object == NULL)
   {
@@ -76,6 +86,9 @@ Object *new_array(size_t capacity)
     free(object);
     return NULL;
   }
+
+  memset(&array, 0, sizeof(Array));
+
   array.elements = elements;
   array.length = 0;
   array.capacity = capacity;
@@ -136,7 +149,7 @@ Object *array_get(Object *object, size_t index)
   return object->data.as_array.elements[index];
 }
 
-int object_length(Object *object)
+size_t object_length(Object *object)
 {
   if (object == NULL)
   {
@@ -154,5 +167,83 @@ int object_length(Object *object)
     return object->data.as_array.length;
   default:
     return RET_ERR;
+  }
+}
+
+Object *object_add(Object *a, Object *b)
+{
+  char *temporary;
+  Object *auxiliary;
+  int i;
+  size_t len_a;
+  size_t len_b;
+
+  if (a == NULL || b == NULL)
+  {
+    return NULL;
+  }
+
+  switch (a->type)
+  {
+  case INTEGER:
+    switch (b->type)
+    {
+    case INTEGER:
+      return new_integer(a->data.as_int + b->data.as_int);
+    case FLOAT:
+      return new_float(a->data.as_int + b->data.as_float);
+    default:
+      return NULL;
+    }
+  case FLOAT:
+    switch (b->type)
+    {
+    case INTEGER:
+      return new_float(a->data.as_float + b->data.as_int);
+    case FLOAT:
+      return new_float(a->data.as_float + b->data.as_float);
+    default:
+      return NULL;
+    }
+  case STRING:
+    if (b->type != STRING)
+    {
+      return NULL;
+    }
+    len_a = object_length(a);
+    len_b = object_length(b);
+    temporary = (char *)calloc(len_a + len_b + 1, sizeof(char));
+    if (temporary == NULL)
+    {
+      return NULL;
+    }
+    memcpy(temporary, a->data.as_string, len_a);
+    memcpy(temporary + len_a, b->data.as_string, len_b);
+    auxiliary = new_string(temporary);
+    free(temporary);
+    return auxiliary;
+  case ARRAY:
+    if (b->type != ARRAY)
+    {
+      return NULL;
+    }
+    len_a = object_length(a);
+    len_b = object_length(b);
+    auxiliary = new_array(len_a + len_b);
+    if (auxiliary == NULL)
+    {
+      return NULL;
+    }
+    for (i = 0; i < len_a; i++)
+    {
+      array_append(auxiliary, array_get(a, i));
+    }
+    for (i = 0; i < len_b; i++)
+    {
+      array_append(auxiliary, array_get(b, i));
+    }
+    return auxiliary;
+  default:
+    return NULL;
   }
 }
