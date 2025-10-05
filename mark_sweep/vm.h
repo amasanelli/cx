@@ -7,9 +7,17 @@ typedef struct
 {
   Stack *frames;
   Stack *objects;
-} VM;
+} VirtualMachine;
 
-VM *new_vm();
-void vm_free(VM *vm);
+typedef struct
+{
+  Stack *references;
+} StackFrame;
+
+VirtualMachine *new_vm();
+void vm_free(VirtualMachine *vm);
+int vm_frame_push(VirtualMachine *vm, StackFrame *frame);
+StackFrame *vm_new_frame(VirtualMachine *vm);
+void frame_free(StackFrame *frame);
 
 #endif
