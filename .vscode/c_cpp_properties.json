@@ -4,9 +4,19 @@
       "name": "Mac",
       "includePath": ["${workspaceFolder}/**"],
       "defines": [],
-      "cStandard": "c89",
+      "cStandard": "gnu89",
+      "cppStandard": "gnu++14",
       "intelliSenseMode": "gcc-x86",
       "compilerPath": "/usr/bin/gcc"
+    },
+    {
+      "name": "Win32",
+      "includePath": ["${workspaceFolder}/**"],
+      "defines": [],
+      "cStandard": "gnu89",
+      "cppStandard": "gnu++14",
+      "intelliSenseMode": "gcc-x86",
+      "compilerPath": "C:/msys64/ucrt64/bin/gcc.exe"
     }
   ],
   "version": 4
