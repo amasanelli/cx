@@ -13,14 +13,16 @@ typedef struct
 typedef struct
 {
   Stack *references;
-} StackFrame;
+  VirtualMachine *vm;
+} Frame;
 
 VirtualMachine *new_vm(void);
 void vm_free(VirtualMachine *vm);
-int vm_track_object(VirtualMachine *vm, Object *object);
 
-StackFrame *vm_new_frame(VirtualMachine *vm);
-int frame_reference_object(StackFrame *frame, Object *object);
+Frame *vm_new_frame(VirtualMachine *vm);
+void vm_frame_free(VirtualMachine *vm);
+
+int frame_reference_object(Frame *frame, Object *object);
 
 void vm_collect_garbage(VirtualMachine *vm);
 

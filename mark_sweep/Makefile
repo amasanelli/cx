@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-Wall -Werror -O3 -std=gnu89 -pedantic-errors -I ./
-SRC=object_new.c object.c stack.c vm.c
+SRC=object.c stack.c vm.c
 OBJ=$(SRC:.c=.o)
 
 .PHONY: clean  

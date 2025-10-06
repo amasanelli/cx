@@ -1,7 +1,8 @@
+#include <stdio.h>
 #include "vm.h"
 #include "definitions.h"
 
-void frame_free(StackFrame *frame)
+void frame_free(Frame *frame)
 {
   if (frame == NULL)
   {
@@ -14,7 +15,7 @@ void frame_free(StackFrame *frame)
   return;
 }
 
-int vm_frame_push(VirtualMachine *vm, StackFrame *frame)
+int vm_frame_push(VirtualMachine *vm, Frame *frame)
 {
   if (vm == NULL || frame == NULL)
   {
@@ -29,7 +30,7 @@ int vm_frame_push(VirtualMachine *vm, StackFrame *frame)
   return RET_OK;
 }
 
-StackFrame *vm_frame_pop(VirtualMachine *vm)
+Frame *vm_frame_pop(VirtualMachine *vm)
 {
   if (vm == NULL)
   {
@@ -39,16 +40,26 @@ StackFrame *vm_frame_pop(VirtualMachine *vm)
   return stack_pop(vm->frames);
 }
 
+Frame *vm_frame_peek(VirtualMachine *vm)
+{
+  if (vm == NULL)
+  {
+    return NULL;
+  }
+
+  return stack_peek(vm->frames);
+}
+
 void mark(VirtualMachine *vm)
 {
   int i;
   int j;
-  StackFrame *frame = NULL;
+  Frame *frame = NULL;
   Object *object = NULL;
 
   for (i = 0; i < vm->frames->length; i++)
   {
-    frame = (StackFrame *)vm->frames->data[i];
+    frame = (Frame *)vm->frames->data[i];
     for (j = 0; j < frame->references->length; j++)
     {
       object = (Object *)frame->references->data[j];
@@ -236,9 +247,9 @@ int vm_track_object(VirtualMachine *vm, Object *object)
   return RET_OK;
 }
 
-StackFrame *vm_new_frame(VirtualMachine *vm)
+Frame *vm_new_frame(VirtualMachine *vm)
 {
-  StackFrame *frame = NULL;
+  Frame *frame = NULL;
   Stack *references = NULL;
 
   if (vm == NULL)
@@ -246,7 +257,7 @@ StackFrame *vm_new_frame(VirtualMachine *vm)
     return NULL;
   }
 
-  frame = (StackFrame *)calloc(1, sizeof(StackFrame));
+  frame = (Frame *)calloc(1, sizeof(Frame));
   if (vm == NULL)
   {
     return NULL;
@@ -260,6 +271,7 @@ StackFrame *vm_new_frame(VirtualMachine *vm)
   }
 
   frame->references = references;
+  frame->vm = vm;
 
   if (vm_frame_push(vm, frame) == RET_ERR)
   {
@@ -271,23 +283,55 @@ StackFrame *vm_new_frame(VirtualMachine *vm)
   return frame;
 }
 
-int frame_reference_object(StackFrame *frame, Object *object)
+int frame_reference_object(Frame *frame, Object *object)
 {
   if (frame == NULL || object == NULL)
   {
     return RET_ERR;
   }
 
+  if (vm_track_object(frame->vm, object) == RET_ERR)
+  {
+    return RET_ERR;
+  }
+
   if (stack_push(frame->references, object) == RET_ERR)
   {
+    stack_pop(frame->vm->objects);
     return RET_ERR;
   }
 
   return RET_OK;
 }
 
+void vm_frame_free(VirtualMachine *vm)
+{
+  Frame *frame = NULL;
+
+  if (vm == NULL)
+  {
+    return;
+  }
+
+  frame = vm_frame_pop(vm);
+
+  if (frame == NULL)
+  {
+    return;
+  }
+
+  frame_free(frame);
+
+  return;
+}
+
 void vm_collect_garbage(VirtualMachine *vm)
 {
+  if (vm == NULL)
+  {
+    return;
+  }
+
   mark(vm);
   trace(vm);
   sweep(vm);

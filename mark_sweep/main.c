@@ -1,37 +1,25 @@
 #include <stdio.h>
-#include "stack.h"
+#include "vm.h"
+#include "object.h"
 
 int main(int argc, char *argv[])
 {
-  Stack *stack;
-  int test = 1;
-  void *check;
+  VirtualMachine *vm;
+  Frame *frame;
+  Object *object;
 
-  stack = new_stack(8);
+  vm = new_vm();
+  frame = vm_new_frame(vm);
+  object = new_string("hello!");
+  frame_reference_object(frame, object);
 
-  stack_push(stack, &test);
-  check = stack_peek(stack);
-  if (check != NULL)
-  {
-    printf("%d\n", *(int *)check); /* 1 */
-  }
-  check = stack_pop(stack);
-  if (check != NULL)
-  {
-    printf("%d\n", *(int *)check); /* 1 */
-  }
-  check = stack_peek(stack);
-  if (check != NULL)
-  {
-    printf("%d\n", *(int *)check);
-  }
-  stack_free(stack);
-  stack = NULL;
-  check = stack_pop(stack);
-  if (check != NULL)
-  {
-    printf("%d\n", *(int *)check);
-  }
+  vm_collect_garbage(vm);
+
+  vm_frame_free(vm);
+
+  vm_collect_garbage(vm);
+
+  vm_free(vm);
 
   return 0;
 }
