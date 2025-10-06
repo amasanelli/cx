@@ -110,7 +110,7 @@ StackFrame *vm_new_frame(VirtualMachine *vm)
 
 int frame_reference_object(StackFrame *frame, Object *object)
 {
-  if (frame == frame || object == NULL)
+  if (frame == NULL || object == NULL)
   {
     return RET_ERR;
   }
