@@ -40,7 +40,7 @@ void trace_blacken_object(Stack *gray_objects, Object *object)
   switch (object->type)
   {
   case ARRAY:
-    for (i = 0; i < object->data.as_array.length; i++)
+    for (i = 0; i < object_length(object); i++)
     {
       trace_mark_object(gray_objects, object->data.as_array.elements[i]);
     }
