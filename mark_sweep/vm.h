@@ -18,9 +18,10 @@ typedef struct
 VirtualMachine *new_vm(void);
 void vm_free(VirtualMachine *vm);
 int vm_track_object(VirtualMachine *vm, Object *object);
-void vm_collect_garbage(VirtualMachine *vm);
 
 StackFrame *vm_new_frame(VirtualMachine *vm);
 int frame_reference_object(StackFrame *frame, Object *object);
+
+void vm_collect_garbage(VirtualMachine *vm);
 
 #endif

@@ -14,6 +14,51 @@ void frame_free(StackFrame *frame)
   return;
 }
 
+int vm_frame_push(VirtualMachine *vm, StackFrame *frame)
+{
+  if (vm == NULL || frame == NULL)
+  {
+    return RET_ERR;
+  }
+
+  if (stack_push(vm->frames, frame) == RET_ERR)
+  {
+    return RET_ERR;
+  }
+
+  return RET_OK;
+}
+
+StackFrame *vm_frame_pop(VirtualMachine *vm)
+{
+  if (vm == NULL)
+  {
+    return NULL;
+  }
+
+  return stack_pop(vm->frames);
+}
+
+void mark(VirtualMachine *vm)
+{
+  int i;
+  int j;
+  StackFrame *frame = NULL;
+  Object *object = NULL;
+
+  for (i = 0; i < vm->frames->length; i++)
+  {
+    frame = (StackFrame *)vm->frames->data[i];
+    for (j = 0; j < frame->references->length; j++)
+    {
+      object = (Object *)frame->references->data[j];
+      object->marked = TRUE;
+    }
+  }
+
+  return;
+}
+
 void trace_mark_object(Stack *gray_objects, Object *object)
 {
   if (gray_objects == NULL || object == NULL || object->marked)
@@ -47,26 +92,6 @@ void trace_blacken_object(Stack *gray_objects, Object *object)
     break;
   default:
     break;
-  }
-
-  return;
-}
-
-void mark(VirtualMachine *vm)
-{
-  int i;
-  int j;
-  StackFrame *frame = NULL;
-  Object *object = NULL;
-
-  for (i = 0; i < vm->frames->length; i++)
-  {
-    frame = (StackFrame *)vm->frames->data[i];
-    for (j = 0; j < frame->references->length; j++)
-    {
-      object = (Object *)frame->references->data[j];
-      object->marked = TRUE;
-    }
   }
 
   return;
@@ -194,14 +219,16 @@ void vm_free(VirtualMachine *vm)
   return;
 }
 
-int vm_frame_push(VirtualMachine *vm, StackFrame *frame)
+int vm_track_object(VirtualMachine *vm, Object *object)
 {
-  if (vm == NULL || frame == NULL)
+  if (vm == NULL || object == NULL)
   {
     return RET_ERR;
   }
 
-  if (stack_push(vm->frames, frame) == RET_ERR)
+  object->marked = FALSE;
+
+  if (stack_push(vm->objects, object) == RET_ERR)
   {
     return RET_ERR;
   }
@@ -252,23 +279,6 @@ int frame_reference_object(StackFrame *frame, Object *object)
   }
 
   if (stack_push(frame->references, object) == RET_ERR)
-  {
-    return RET_ERR;
-  }
-
-  return RET_OK;
-}
-
-int vm_track_object(VirtualMachine *vm, Object *object)
-{
-  if (vm == NULL || object == NULL)
-  {
-    return RET_ERR;
-  }
-
-  object->marked = FALSE;
-
-  if (stack_push(vm->objects, object) == RET_ERR)
   {
     return RET_ERR;
   }
