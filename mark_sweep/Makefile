@@ -1,12 +1,18 @@
 CC=gcc
-FLAGS=-Wall -Werror -O3 -std=gnu89 -pedantic-errors -I ./
-C_FILES=stack.c
-H_FILES=stack.h
+CFLAGS=-Wall -Werror -O3 -std=gnu89 -pedantic-errors -I ./
+SRC=object_new.c object.c stack.c vm.c
+OBJ=$(SRC:.c=.o)
 
-all: clean stack
+.PHONY: clean  
 
-stack: main.c $(C_FILES) $(H_FILES)
-	$(CC) $(FLAGS) -o stack main.c $(C_FILES)
+all: clean mark_sweep 
+
+mark_sweep: main.o $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $^ 
+
+%.o: %.c %.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f stack
+	$(RM) *.o mark_sweep
+ 
