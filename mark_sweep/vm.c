@@ -258,7 +258,7 @@ Frame *vm_new_frame(VirtualMachine *vm)
   }
 
   frame = (Frame *)calloc(1, sizeof(Frame));
-  if (vm == NULL)
+  if (frame == NULL)
   {
     return NULL;
   }
