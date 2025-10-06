@@ -40,16 +40,6 @@ Frame *vm_frame_pop(VirtualMachine *vm)
   return stack_pop(vm->frames);
 }
 
-Frame *vm_frame_peek(VirtualMachine *vm)
-{
-  if (vm == NULL)
-  {
-    return NULL;
-  }
-
-  return stack_peek(vm->frames);
-}
-
 void mark(VirtualMachine *vm)
 {
   int i;

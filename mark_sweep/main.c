@@ -7,24 +7,40 @@ int main(int argc, char *argv[])
   VirtualMachine *vm;
   Frame *frame1;
   Frame *frame2;
-  Object *object;
+  Object *object1;
+  Object *object2;
 
   vm = new_vm();
   frame1 = vm_new_frame(vm);
-  frame2 = vm_new_frame(vm);
-  object = new_string("hello!");
-  frame_reference_object(frame2, object);
-  frame_reference_object(frame1, object);
-  printf("%s\n", object->data.as_string);
+
+  {
+    frame2 = vm_new_frame(vm);
+    object1 = new_string("hello!");
+    frame_reference_object(frame2, object1);
+
+    object2 = new_string(object1->data.as_string);
+    frame_reference_object(frame1, object2);
+  }
+
+  printf("%lu\n", vm->frames->length);
+  printf("%lu\n", vm->objects->length);
 
   vm_collect_garbage(vm);
-  printf("%s\n", object->data.as_string);
+
+  printf("%lu\n", vm->frames->length);
+  printf("%lu\n", vm->objects->length);
 
   vm_frame_free(vm);
-  printf("%s\n", object->data.as_string);
+
+  printf("%lu\n", vm->frames->length);
+  printf("%lu\n", vm->objects->length);
 
   vm_collect_garbage(vm);
-  printf("%s", object->data.as_string);
+
+  printf("%lu\n", vm->frames->length);
+  printf("%lu\n", vm->objects->length);
+
+  vm_free(vm);
 
   return 0;
 }
