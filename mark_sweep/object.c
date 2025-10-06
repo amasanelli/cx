@@ -117,7 +117,7 @@ int array_append(Object *object, Object *value)
   Object **temporary = NULL;
   size_t capacity;
 
-  if (object == NULL || object->type != ARRAY)
+  if (object == NULL || object->type != ARRAY || value == NULL)
   {
     return RET_ERR;
   }

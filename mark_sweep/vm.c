@@ -60,44 +60,6 @@ void mark(VirtualMachine *vm)
   return;
 }
 
-void trace_mark_object(Stack *gray_objects, Object *object)
-{
-  if (gray_objects == NULL || object == NULL || object->marked)
-  {
-    return;
-  }
-
-  object->marked = TRUE;
-
-  stack_push(gray_objects, object);
-
-  return;
-}
-
-void trace_blacken_object(Stack *gray_objects, Object *object)
-{
-  int i;
-
-  if (gray_objects == NULL || object == NULL)
-  {
-    return;
-  }
-
-  switch (object->type)
-  {
-  case ARRAY:
-    for (i = 0; i < object_length(object); i++)
-    {
-      trace_mark_object(gray_objects, object->data.as_array.elements[i]);
-    }
-    break;
-  default:
-    break;
-  }
-
-  return;
-}
-
 void trace(VirtualMachine *vm)
 {
   Stack *gray_objects = NULL;
@@ -127,7 +89,22 @@ void trace(VirtualMachine *vm)
   while (gray_objects->length > 0)
   {
     object = (Object *)stack_pop(gray_objects);
-    trace_blacken_object(gray_objects, object);
+    if (object->type != ARRAY)
+    {
+      continue;
+    }
+
+    for (i = 0; i < object_length(object); i++)
+    {
+      object = (Object *)object->data.as_array.elements[i];
+      if (object->marked)
+      {
+        continue;
+      }
+
+      object->marked = TRUE;
+      stack_push(gray_objects, object);
+    }
   }
 
   stack_free(gray_objects);
