@@ -1,6 +1,57 @@
 #include "vm.h"
 #include "definitions.h"
 
+void frame_free(StackFrame *frame)
+{
+  if (frame == NULL)
+  {
+    return;
+  }
+
+  stack_free(frame->references);
+  free(frame);
+
+  return;
+}
+
+void trace_mark_object(Stack *gray_objects, Object *object)
+{
+  if (gray_objects == NULL || object == NULL || object->marked)
+  {
+    return;
+  }
+
+  object->marked = TRUE;
+
+  stack_push(gray_objects, object);
+
+  return;
+}
+
+void trace_blacken_object(Stack *gray_objects, Object *object)
+{
+  int i;
+
+  if (gray_objects == NULL || object == NULL)
+  {
+    return;
+  }
+
+  switch (object->type)
+  {
+  case ARRAY:
+    for (i = 0; i < object->data.as_array.length; i++)
+    {
+      trace_mark_object(gray_objects, object->data.as_array.elements[i]);
+    }
+    break;
+  default:
+    break;
+  }
+
+  return;
+}
+
 VirtualMachine *new_vm(void)
 {
   VirtualMachine *vm = NULL;
@@ -123,19 +174,6 @@ int frame_reference_object(StackFrame *frame, Object *object)
   return RET_OK;
 }
 
-void frame_free(StackFrame *frame)
-{
-  if (frame == NULL)
-  {
-    return;
-  }
-
-  stack_free(frame->references);
-  free(frame);
-
-  return;
-}
-
 int vm_track_object(VirtualMachine *vm, Object *object)
 {
   if (vm == NULL || object == NULL)
@@ -153,7 +191,7 @@ int vm_track_object(VirtualMachine *vm, Object *object)
   return RET_OK;
 }
 
-void vm_mark(VirtualMachine *vm)
+void mark(VirtualMachine *vm)
 {
   int i;
   int j;
@@ -169,4 +207,41 @@ void vm_mark(VirtualMachine *vm)
       object->marked = TRUE;
     }
   }
+}
+
+void trace(VirtualMachine *vm)
+{
+  Stack *gray_objects = NULL;
+  Object *object = NULL;
+  int i;
+
+  if (vm == NULL)
+  {
+    return;
+  }
+
+  gray_objects = new_stack(8);
+  if (gray_objects == NULL)
+  {
+    return;
+  }
+
+  for (i = 0; i < vm->objects->length; i++)
+  {
+    object = (Object *)vm->objects->data[i];
+    if (object->marked)
+    {
+      stack_push(gray_objects, object);
+    }
+  }
+
+  while (gray_objects->length > 0)
+  {
+    object = (Object *)stack_pop(gray_objects);
+    trace_blacken_object(gray_objects, object);
+  }
+
+  stack_free(gray_objects);
+
+  return;
 }

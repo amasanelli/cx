@@ -5,7 +5,7 @@ OBJ=$(SRC:.c=.o)
 
 .PHONY: clean  
 
-all: clean mark_sweep 
+all: mark_sweep 
 
 mark_sweep: main.o $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^ 
