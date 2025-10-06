@@ -95,3 +95,33 @@ void *stack_peek(Stack *stack)
 
   return stack->data[stack->length - 1];
 }
+
+void stack_remove_nulls(Stack *stack)
+{
+  int i;
+  void *object;
+  int length = 0;
+
+  if (stack == NULL || stack->length == 0)
+  {
+    return;
+  }
+
+  for (i = 0; i < stack->length; i++)
+  {
+    object = stack->data[i];
+    if (object != NULL)
+    {
+      stack->data[length++] = object;
+    }
+  }
+
+  stack->length = length;
+
+  for (i = length; i < stack->capacity; i++)
+  {
+    stack->data[i] = NULL;
+  }
+
+  return;
+}

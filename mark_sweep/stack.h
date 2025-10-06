@@ -15,5 +15,6 @@ int stack_push(Stack *stack, void *object);
 void *stack_pop(Stack *stack);
 void stack_free(Stack *stack);
 void *stack_peek(Stack *stack);
+void stack_remove_nulls(Stack *stack);
 
 #endif

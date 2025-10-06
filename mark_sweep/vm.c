@@ -52,6 +52,91 @@ void trace_blacken_object(Stack *gray_objects, Object *object)
   return;
 }
 
+void mark(VirtualMachine *vm)
+{
+  int i;
+  int j;
+  StackFrame *frame = NULL;
+  Object *object = NULL;
+
+  for (i = 0; i < vm->frames->length; i++)
+  {
+    frame = (StackFrame *)vm->frames->data[i];
+    for (j = 0; j < frame->references->length; j++)
+    {
+      object = (Object *)frame->references->data[j];
+      object->marked = TRUE;
+    }
+  }
+
+  return;
+}
+
+void trace(VirtualMachine *vm)
+{
+  Stack *gray_objects = NULL;
+  Object *object = NULL;
+  int i;
+
+  if (vm == NULL)
+  {
+    return;
+  }
+
+  gray_objects = new_stack(8);
+  if (gray_objects == NULL)
+  {
+    return;
+  }
+
+  for (i = 0; i < vm->objects->length; i++)
+  {
+    object = (Object *)vm->objects->data[i];
+    if (object->marked)
+    {
+      stack_push(gray_objects, object);
+    }
+  }
+
+  while (gray_objects->length > 0)
+  {
+    object = (Object *)stack_pop(gray_objects);
+    trace_blacken_object(gray_objects, object);
+  }
+
+  stack_free(gray_objects);
+
+  return;
+}
+
+void sweep(VirtualMachine *vm)
+{
+  Object *object = NULL;
+  int i;
+
+  if (vm == NULL)
+  {
+    return;
+  }
+
+  for (i = 0; i < vm->objects->length; i++)
+  {
+    object = (Object *)vm->objects->data[i];
+    if (object->marked)
+    {
+      object->marked = FALSE;
+      continue;
+    }
+
+    object_free(object);
+    vm->objects->data[i] = NULL;
+  }
+
+  stack_remove_nulls(vm->objects);
+
+  return;
+}
+
 VirtualMachine *new_vm(void)
 {
   VirtualMachine *vm = NULL;
@@ -191,57 +276,9 @@ int vm_track_object(VirtualMachine *vm, Object *object)
   return RET_OK;
 }
 
-void mark(VirtualMachine *vm)
+void vm_collect_garbage(VirtualMachine *vm)
 {
-  int i;
-  int j;
-  StackFrame *frame = NULL;
-  Object *object = NULL;
-
-  for (i = 0; i < vm->frames->length; i++)
-  {
-    frame = (StackFrame *)vm->frames->data[i];
-    for (j = 0; j < frame->references->length; j++)
-    {
-      object = (Object *)frame->references->data[j];
-      object->marked = TRUE;
-    }
-  }
-}
-
-void trace(VirtualMachine *vm)
-{
-  Stack *gray_objects = NULL;
-  Object *object = NULL;
-  int i;
-
-  if (vm == NULL)
-  {
-    return;
-  }
-
-  gray_objects = new_stack(8);
-  if (gray_objects == NULL)
-  {
-    return;
-  }
-
-  for (i = 0; i < vm->objects->length; i++)
-  {
-    object = (Object *)vm->objects->data[i];
-    if (object->marked)
-    {
-      stack_push(gray_objects, object);
-    }
-  }
-
-  while (gray_objects->length > 0)
-  {
-    object = (Object *)stack_pop(gray_objects);
-    trace_blacken_object(gray_objects, object);
-  }
-
-  stack_free(gray_objects);
-
-  return;
+  mark(vm);
+  trace(vm);
+  sweep(vm);
 }
