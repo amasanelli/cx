@@ -228,6 +228,26 @@ void vm_free(VirtualMachine *vm)
   return;
 }
 
+int vm_object_tracked(VirtualMachine *vm, Object *object)
+{
+  size_t i;
+
+  if (vm == NULL || object == NULL)
+  {
+    return FALSE;
+  }
+
+  for (i = 0; i < vm->objects->length; i++)
+  {
+    if (vm->objects->data[i] == object)
+    {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
 int vm_track_object(VirtualMachine *vm, Object *object)
 {
   if (vm == NULL || object == NULL)
@@ -283,19 +303,34 @@ Frame *vm_new_frame(VirtualMachine *vm)
 
 int frame_reference_object(Frame *frame, Object *object)
 {
+  int tracked;
+
   if (frame == NULL || object == NULL)
   {
     return RET_ERR;
   }
 
-  if (vm_track_object(frame->vm, object) == RET_ERR)
+  /*
+  an object referenced more than once (same frame or another frame) must
+  stay tracked exactly once: duplicate slots would make sweep and vm_free
+  free it twice
+  */
+  tracked = vm_object_tracked(frame->vm, object);
+
+  if (!tracked && vm_track_object(frame->vm, object) == RET_ERR)
   {
     return RET_ERR;
   }
 
   if (stack_push(frame->references, object) == RET_ERR)
   {
-    stack_pop(frame->vm->objects);
+    /*
+    unwind only what this call pushed: a previously tracked object stays
+    */
+    if (!tracked)
+    {
+      stack_pop(frame->vm->objects);
+    }
     return RET_ERR;
   }
 
