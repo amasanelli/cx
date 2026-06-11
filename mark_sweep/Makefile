@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Werror -O3 -std=gnu89 -pedantic-errors -I ./
+CFLAGS=-Wall -Wsign-compare -Werror -O3 -std=gnu89 -pedantic-errors -I ./
 SRC=object.c stack.c vm.c
 OBJ=$(SRC:.c=.o)
 

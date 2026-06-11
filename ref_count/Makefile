@@ -1,5 +1,5 @@
 CC=gcc
-FLAGS=-Wall -Werror -O3 -std=gnu89 -pedantic-errors -I ./
+FLAGS=-Wall -Wsign-compare -Werror -O3 -std=gnu89 -pedantic-errors -I ./
 C_FILES=object.c set.c
 H_FILES=object.h set.h
 

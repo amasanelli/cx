@@ -42,8 +42,8 @@ Frame *vm_frame_pop(VirtualMachine *vm)
 
 void mark(VirtualMachine *vm)
 {
-  int i;
-  int j;
+  size_t i;
+  size_t j;
   Frame *frame = NULL;
   Object *object = NULL;
 
@@ -60,21 +60,23 @@ void mark(VirtualMachine *vm)
   return;
 }
 
-void trace(VirtualMachine *vm)
+int trace(VirtualMachine *vm)
 {
   Stack *gray_objects = NULL;
   Object *object = NULL;
-  int i;
+  Object *child = NULL;
+  size_t i;
+  size_t length;
 
   if (vm == NULL)
   {
-    return;
+    return RET_ERR;
   }
 
   gray_objects = new_stack(8);
   if (gray_objects == NULL)
   {
-    return;
+    return RET_ERR;
   }
 
   for (i = 0; i < vm->objects->length; i++)
@@ -82,7 +84,11 @@ void trace(VirtualMachine *vm)
     object = (Object *)vm->objects->data[i];
     if (object->marked)
     {
-      stack_push(gray_objects, object);
+      if (stack_push(gray_objects, object) == RET_ERR)
+      {
+        stack_free(gray_objects);
+        return RET_ERR;
+      }
     }
   }
 
@@ -94,28 +100,34 @@ void trace(VirtualMachine *vm)
       continue;
     }
 
-    for (i = 0; i < object_length(object); i++)
+    /* type checked above: read length directly, skip object_length dispatch */
+    length = object->data.as_array.length;
+    for (i = 0; i < length; i++)
     {
-      object = (Object *)object->data.as_array.elements[i];
-      if (object->marked)
+      child = (Object *)object->data.as_array.elements[i];
+      if (child == NULL || child->marked)
       {
         continue;
       }
 
-      object->marked = TRUE;
-      stack_push(gray_objects, object);
+      child->marked = TRUE;
+      if (stack_push(gray_objects, child) == RET_ERR)
+      {
+        stack_free(gray_objects);
+        return RET_ERR;
+      }
     }
   }
 
   stack_free(gray_objects);
 
-  return;
+  return RET_OK;
 }
 
 void sweep(VirtualMachine *vm)
 {
   Object *object = NULL;
-  int i;
+  size_t i;
 
   if (vm == NULL)
   {
@@ -162,7 +174,7 @@ VirtualMachine *new_vm(void)
   objects = new_stack(8);
   if (objects == NULL)
   {
-    free(frames);
+    stack_free(frames);
     free(vm);
     return NULL;
   }
@@ -175,7 +187,7 @@ VirtualMachine *new_vm(void)
 
 void vm_free(VirtualMachine *vm)
 {
-  int i;
+  size_t i;
 
   if (vm == NULL)
   {
@@ -300,6 +312,10 @@ void vm_collect_garbage(VirtualMachine *vm)
   }
 
   mark(vm);
-  trace(vm);
+  /* if tracing fails, sweeping would free reachable objects */
+  if (trace(vm) == RET_ERR)
+  {
+    return;
+  }
   sweep(vm);
 }

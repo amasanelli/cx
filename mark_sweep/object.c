@@ -55,6 +55,11 @@ Object *new_string(char *value)
   size_t length;
   char *auxiliary;
 
+  if (value == NULL)
+  {
+    return NULL;
+  }
+
   object = new_object();
   if (object == NULL)
   {
@@ -82,22 +87,21 @@ Object *new_array(size_t capacity)
   Object **elements = NULL;
   Array array;
 
-  if (capacity == 0)
-  {
-    return NULL;
-  }
-
   object = new_object();
   if (object == NULL)
   {
     return NULL;
   }
 
-  elements = (Object **)calloc(capacity, sizeof(Object *));
-  if (elements == NULL)
+  /* capacity 0 keeps elements NULL; first append grows via realloc(NULL, ...) */
+  if (capacity > 0)
   {
-    free(object);
-    return NULL;
+    elements = (Object **)calloc(capacity, sizeof(Object *));
+    if (elements == NULL)
+    {
+      free(object);
+      return NULL;
+    }
   }
 
   memset(&array, 0, sizeof(Array));
@@ -143,16 +147,19 @@ int array_append(Object *object, Object *value)
 
 int array_contains(Object *object, Object *value)
 {
-  int i;
+  size_t i;
+  size_t length;
 
   if (object == NULL || object->type != ARRAY || value == NULL)
   {
     return 0;
   }
 
-  for (i = 0; i < object_length(object); i++)
+  /* index directly: object_length/array_get would repeat the checks above */
+  length = object->data.as_array.length;
+  for (i = 0; i < length; i++)
   {
-    if (array_get(object, i) == value)
+    if (object->data.as_array.elements[i] == value)
     {
       return 1;
     }
@@ -232,7 +239,6 @@ Object *object_add(Object *a, Object *b)
 {
   char *temporary;
   Object *auxiliary;
-  int i;
   size_t len_a;
   size_t len_b;
 
@@ -268,8 +274,9 @@ Object *object_add(Object *a, Object *b)
     {
       return NULL;
     }
-    len_a = object_length(a);
-    len_b = object_length(b);
+    /* types already checked: strlen directly, skip object_length dispatch */
+    len_a = strlen(a->data.as_string);
+    len_b = strlen(b->data.as_string);
     temporary = (char *)calloc(len_a + len_b + 1, sizeof(char));
     if (temporary == NULL)
     {
@@ -285,21 +292,23 @@ Object *object_add(Object *a, Object *b)
     {
       return NULL;
     }
-    len_a = object_length(a);
-    len_b = object_length(b);
+    len_a = a->data.as_array.length;
+    len_b = b->data.as_array.length;
     auxiliary = new_array(len_a + len_b);
     if (auxiliary == NULL)
     {
       return NULL;
     }
-    for (i = 0; i < len_a; i++)
+    /* capacity preallocated: copy directly, array_append cannot fail or grow */
+    if (len_a > 0)
     {
-      array_append(auxiliary, array_get(a, i));
+      memcpy(auxiliary->data.as_array.elements, a->data.as_array.elements, len_a * sizeof(Object *));
     }
-    for (i = 0; i < len_b; i++)
+    if (len_b > 0)
     {
-      array_append(auxiliary, array_get(b, i));
+      memcpy(auxiliary->data.as_array.elements + len_a, b->data.as_array.elements, len_b * sizeof(Object *));
     }
+    auxiliary->data.as_array.length = len_a + len_b;
     return auxiliary;
   default:
     return NULL;

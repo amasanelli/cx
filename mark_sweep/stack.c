@@ -98,9 +98,9 @@ void *stack_peek(Stack *stack)
 
 void stack_remove_nulls(Stack *stack)
 {
-  int i;
+  size_t i;
   void *object;
-  int length = 0;
+  size_t length = 0;
 
   if (stack == NULL || stack->length == 0)
   {
@@ -118,6 +118,7 @@ void stack_remove_nulls(Stack *stack)
 
   stack->length = length;
 
+  /* keep dead slots NULL so stale pointers never linger after a sweep */
   for (i = length; i < stack->capacity; i++)
   {
     stack->data[i] = NULL;

@@ -10,7 +10,7 @@ void set_init(Set *set)
 
 int set_contains(Set *set, void *item)
 {
-  int i;
+  size_t i;
 
   for (i = 0; i < set->length; i++)
   {
