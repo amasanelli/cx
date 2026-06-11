@@ -1,9 +1,9 @@
-#ifndef _OBJECT_
-#define _OBJECT_
+#ifndef OBJECT_H
+#define OBJECT_H
 
 #include <stdlib.h>
 
-typedef struct _object Object;
+typedef struct object_s Object;
 
 typedef enum
 {
@@ -28,7 +28,7 @@ typedef union
   Array as_array;
 } Data;
 
-struct _object
+struct object_s
 {
   Data data;
   Type type;

@@ -1,18 +1,13 @@
 CC=gcc
 CFLAGS=-Wall -Wsign-compare -Werror -O3 -std=gnu89 -pedantic-errors -I ./
-SRC=object.c stack.c vm.c
-OBJ=$(SRC:.c=.o)
+C_FILES=object.c stack.c vm.c
 
-.PHONY: clean  
+.PHONY: all clean
 
-all: mark_sweep 
+all: clean mark_sweep
 
-mark_sweep: main.o $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $^ 
-
-%.o: %.c %.h
-	$(CC) $(CFLAGS) -c $< -o $@
+mark_sweep: main.c $(C_FILES)
+	$(CC) $(CFLAGS) -o $@ $^
 
 clean:
-	$(RM) *.o mark_sweep
- 
+	$(RM) mark_sweep

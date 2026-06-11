@@ -1,12 +1,13 @@
 CC=gcc
-FLAGS=-Wall -Wsign-compare -Werror -O3 -std=gnu89 -pedantic-errors -I ./
+CFLAGS=-Wall -Wsign-compare -Werror -O3 -std=gnu89 -pedantic-errors -I ./
 C_FILES=stack.c
-H_FILES=stack.h
+
+.PHONY: all clean
 
 all: clean stack
 
-stack: main.c $(C_FILES) $(H_FILES)
-	$(CC) $(FLAGS) -o stack main.c $(C_FILES)
+stack: main.c $(C_FILES)
+	$(CC) $(CFLAGS) -o $@ $^
 
 clean:
-	rm -f stack
+	$(RM) stack

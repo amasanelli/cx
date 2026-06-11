@@ -15,10 +15,10 @@ int set_contains(Set *set, void *item)
   for (i = 0; i < set->length; i++)
   {
     if (set->items[i] == item)
-      return 1;
+      return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 int set_add(Set *set, void *item)
@@ -28,7 +28,7 @@ int set_add(Set *set, void *item)
 
   if (set_contains(set, item))
   {
-    return 0;
+    return FALSE;
   }
 
   if (set->length == set->capacity)
@@ -38,7 +38,7 @@ int set_add(Set *set, void *item)
     temporary = (void **)realloc(set->items, sizeof(void *) * capacity);
     if (temporary == NULL)
     {
-      return 0;
+      return FALSE;
     }
 
     set->capacity = capacity;
@@ -47,7 +47,7 @@ int set_add(Set *set, void *item)
 
   set->items[set->length++] = item;
 
-  return 1;
+  return TRUE;
 }
 
 void set_free(Set *set)

@@ -1,5 +1,5 @@
-#ifndef _DEFINITIONS_
-#define _DEFINITIONS_
+#ifndef DEFINITIONS_H
+#define DEFINITIONS_H
 
 #define RET_OK 0
 #define RET_ERR -1

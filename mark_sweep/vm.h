@@ -1,5 +1,5 @@
-#ifndef _VM_
-#define _VM_
+#ifndef VM_H
+#define VM_H
 
 #include "stack.h"
 #include "object.h"

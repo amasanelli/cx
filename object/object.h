@@ -1,7 +1,9 @@
-#ifndef _OBJECT_
-#define _OBJECT_
+#ifndef OBJECT_H
+#define OBJECT_H
 
-typedef struct _object Object;
+#include <stdlib.h>
+
+typedef struct object_s Object;
 
 typedef enum
 {
@@ -26,7 +28,7 @@ typedef union
   Array as_array;
 } Data;
 
-struct _object
+struct object_s
 {
   Data data;
   Type type;
@@ -42,5 +44,6 @@ int array_append(Object *object, Object *value);
 size_t object_length(Object *object);
 Object *object_add(Object *a, Object *b);
 int array_contains(Object *object, Object *value);
+void object_free(Object *object);
 
 #endif

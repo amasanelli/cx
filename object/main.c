@@ -32,6 +32,15 @@ int main(int argc, char *argv[])
 
   printf("%d\n", array_contains(array, x));
 
+  /*
+  x is element 0: the loop frees it, no separate free needed
+  */
+  for (i = 0; i < object_length(array); i++)
+  {
+    object_free(array_get(array, i));
+  }
+  object_free(array);
+
   /* printf("%d\n", (object_add(new_integer(1), new_integer(1)))->data.as_int); */
   /* printf("%f\n", (object_add(new_integer(1), new_float(1.0)))->data.as_float); */
   /* printf("%f\n", (object_add(new_float(1.0), new_integer(1)))->data.as_float); */

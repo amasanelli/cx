@@ -4,11 +4,16 @@
 #include "object.h"
 #include "definitions.h"
 
+Object *new_object(void)
+{
+  return (Object *)calloc(1, sizeof(Object));
+}
+
 Object *new_integer(int value)
 {
   Object *object = NULL;
 
-  object = (Object *)calloc(1, sizeof(Object));
+  object = new_object();
   if (object == NULL)
   {
     return NULL;
@@ -24,7 +29,7 @@ Object *new_float(float value)
 {
   Object *object = NULL;
 
-  object = (Object *)calloc(1, sizeof(Object));
+  object = new_object();
   if (object == NULL)
   {
     return NULL;
@@ -47,7 +52,7 @@ Object *new_string(char *value)
     return NULL;
   }
 
-  object = (Object *)calloc(1, sizeof(Object));
+  object = new_object();
   if (object == NULL)
   {
     return NULL;
@@ -74,13 +79,15 @@ Object *new_array(size_t capacity)
   Object **elements = NULL;
   Array array;
 
-  object = (Object *)calloc(1, sizeof(Object));
+  object = new_object();
   if (object == NULL)
   {
     return NULL;
   }
 
-  /* capacity 0 keeps elements NULL; first append grows via realloc(NULL, ...) */
+  /*
+  capacity 0 keeps elements NULL; first append grows via realloc(NULL, ...)
+  */
   if (capacity > 0)
   {
     elements = (Object **)calloc(capacity, sizeof(Object *));
@@ -91,7 +98,10 @@ Object *new_array(size_t capacity)
     }
   }
 
+  /*
+  not needed: every field is assigned below, zeroing first is dead work
   memset(&array, 0, sizeof(Array));
+  */
 
   array.elements = elements;
   array.length = 0;
@@ -139,25 +149,27 @@ int array_contains(Object *object, Object *value)
 
   if (object == NULL || object->type != ARRAY || value == NULL)
   {
-    return 0;
+    return FALSE;
   }
 
-  /* index directly: object_length/array_get would repeat the checks above */
+  /*
+  index directly: object_length/array_get would repeat the checks above
+  */
   length = object->data.as_array.length;
   for (i = 0; i < length; i++)
   {
     if (object->data.as_array.elements[i] == value)
     {
-      return 1;
+      return TRUE;
     }
   }
 
-  return 0;
+  return FALSE;
 }
 
 int array_set(Object *object, Object *value, size_t index)
 {
-  if (object == NULL || object->type != ARRAY || index >= object->data.as_array.length)
+  if (object == NULL || object->type != ARRAY || index >= object->data.as_array.length || value == NULL)
   {
     return RET_ERR;
   }
@@ -175,6 +187,33 @@ Object *array_get(Object *object, size_t index)
   }
 
   return object->data.as_array.elements[index];
+}
+
+/*
+frees the object and its owned buffers; array elements belong to the caller
+*/
+void object_free(Object *object)
+{
+  if (object == NULL)
+  {
+    return;
+  }
+
+  switch (object->type)
+  {
+  case STRING:
+    free(object->data.as_string);
+    break;
+  case ARRAY:
+    free(object->data.as_array.elements);
+    break;
+  default:
+    break;
+  }
+
+  free(object);
+
+  return;
 }
 
 size_t object_length(Object *object)
@@ -237,7 +276,9 @@ Object *object_add(Object *a, Object *b)
     {
       return NULL;
     }
-    /* types already checked: strlen directly, skip object_length dispatch */
+    /*
+    types already checked: strlen directly, skip object_length dispatch
+    */
     len_a = strlen(a->data.as_string);
     len_b = strlen(b->data.as_string);
     temporary = (char *)calloc(len_a + len_b + 1, sizeof(char));
@@ -247,8 +288,17 @@ Object *object_add(Object *a, Object *b)
     }
     memcpy(temporary, a->data.as_string, len_a);
     memcpy(temporary + len_a, b->data.as_string, len_b);
-    auxiliary = new_string(temporary);
-    free(temporary);
+    /*
+    hand the buffer to the object directly: new_string would alloc and copy again
+    */
+    auxiliary = new_object();
+    if (auxiliary == NULL)
+    {
+      free(temporary);
+      return NULL;
+    }
+    auxiliary->type = STRING;
+    auxiliary->data.as_string = temporary;
     return auxiliary;
   case ARRAY:
     if (b->type != ARRAY)
@@ -262,7 +312,9 @@ Object *object_add(Object *a, Object *b)
     {
       return NULL;
     }
-    /* capacity preallocated: copy directly, array_append cannot fail or grow */
+    /*
+    capacity preallocated: copy directly, array_append cannot fail or grow
+    */
     if (len_a > 0)
     {
       memcpy(auxiliary->data.as_array.elements, a->data.as_array.elements, len_a * sizeof(Object *));

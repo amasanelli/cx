@@ -23,23 +23,23 @@ int main(int argc, char *argv[])
     frame_reference_object(frame1, object2);
   }
 
-  printf("%lu\n", vm->frames->length);
-  printf("%lu\n", vm->objects->length);
+  printf("%lu\n", (unsigned long)vm->frames->length);
+  printf("%lu\n", (unsigned long)vm->objects->length);
 
   vm_collect_garbage(vm);
 
-  printf("%lu\n", vm->frames->length);
-  printf("%lu\n", vm->objects->length);
+  printf("%lu\n", (unsigned long)vm->frames->length);
+  printf("%lu\n", (unsigned long)vm->objects->length);
 
   vm_frame_free(vm);
 
-  printf("%lu\n", vm->frames->length);
-  printf("%lu\n", vm->objects->length);
+  printf("%lu\n", (unsigned long)vm->frames->length);
+  printf("%lu\n", (unsigned long)vm->objects->length);
 
   vm_collect_garbage(vm);
 
-  printf("%lu\n", vm->frames->length);
-  printf("%lu\n", vm->objects->length);
+  printf("%lu\n", (unsigned long)vm->frames->length);
+  printf("%lu\n", (unsigned long)vm->objects->length);
 
   vm_free(vm);
 
@@ -71,26 +71,26 @@ int main(int argc, char *argv[])
 
   array_append(object1, object2);
 
-  printf("%lu\n", vm->frames->length);
-  printf("%lu\n", vm->objects->length);
+  printf("%lu\n", (unsigned long)vm->frames->length);
+  printf("%lu\n", (unsigned long)vm->objects->length);
 
   vm_collect_garbage(vm);
 
-  printf("%lu\n", vm->frames->length);
-  printf("%lu\n", vm->objects->length);
+  printf("%lu\n", (unsigned long)vm->frames->length);
+  printf("%lu\n", (unsigned long)vm->objects->length);
 
   vm_frame_free(vm);
 
-  printf("%lu\n", vm->frames->length);
-  printf("%lu\n", vm->objects->length);
+  printf("%lu\n", (unsigned long)vm->frames->length);
+  printf("%lu\n", (unsigned long)vm->objects->length);
 
   vm_collect_garbage(vm);
 
-  printf("%lu\n", vm->frames->length);
-  printf("%lu\n", vm->objects->length);
+  printf("%lu\n", (unsigned long)vm->frames->length);
+  printf("%lu\n", (unsigned long)vm->objects->length);
 
-  printf("%lu\n", object1->data.as_array.length);
-  printf("%lu\n", object2->data.as_array.length);
+  printf("%lu\n", (unsigned long)object1->data.as_array.length);
+  printf("%lu\n", (unsigned long)object2->data.as_array.length);
 
   vm_free(vm);
 

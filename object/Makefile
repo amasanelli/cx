@@ -1,12 +1,13 @@
 CC=gcc
-FLAGS=-Wall -Wsign-compare -Werror -O3 -std=gnu89 -pedantic-errors -I ./
-C_FILES=object.c
-H_FILES=object.h
+CFLAGS=-Wall -Wsign-compare -Werror -O3 -std=gnu89 -pedantic-errors -I ./
+C_FILES=object.c 
+
+.PHONY: all clean
 
 all: clean object
 
-object: main.c $(C_FILES) $(H_FILES)
-	$(CC) $(FLAGS) -o object main.c $(C_FILES)
+object: main.c $(C_FILES)
+	$(CC) $(CFLAGS) -o $@ $^
 
 clean:
-	rm -f object
+	$(RM) object

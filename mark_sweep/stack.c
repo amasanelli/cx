@@ -7,11 +7,6 @@ Stack *new_stack(size_t capacity)
 {
   Stack *stack = NULL;
 
-  if (capacity == 0)
-  {
-    return NULL;
-  }
-
   stack = (Stack *)calloc(1, sizeof(Stack));
   if (stack == NULL)
   {
@@ -20,11 +15,18 @@ Stack *new_stack(size_t capacity)
 
   stack->capacity = capacity;
   stack->length = 0;
-  stack->data = (void **)calloc(capacity, sizeof(void *));
-  if (stack->data == NULL)
+
+  /*
+  capacity 0 keeps data NULL; first push grows via realloc(NULL, ...)
+  */
+  if (capacity > 0)
   {
-    free(stack);
-    return NULL;
+    stack->data = (void **)calloc(capacity, sizeof(void *));
+    if (stack->data == NULL)
+    {
+      free(stack);
+      return NULL;
+    }
   }
 
   return stack;
@@ -118,7 +120,9 @@ void stack_remove_nulls(Stack *stack)
 
   stack->length = length;
 
-  /* keep dead slots NULL so stale pointers never linger after a sweep */
+  /*
+  keep dead slots NULL so stale pointers never linger after a sweep
+  */
   for (i = length; i < stack->capacity; i++)
   {
     stack->data[i] = NULL;

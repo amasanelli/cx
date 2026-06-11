@@ -47,6 +47,11 @@ void mark(VirtualMachine *vm)
   Frame *frame = NULL;
   Object *object = NULL;
 
+  if (vm == NULL)
+  {
+    return;
+  }
+
   for (i = 0; i < vm->frames->length; i++)
   {
     frame = (Frame *)vm->frames->data[i];
@@ -100,7 +105,9 @@ int trace(VirtualMachine *vm)
       continue;
     }
 
-    /* type checked above: read length directly, skip object_length dispatch */
+    /*
+    type checked above: read length directly, skip object_length dispatch
+    */
     length = object->data.as_array.length;
     for (i = 0; i < length; i++)
     {
@@ -128,26 +135,38 @@ void sweep(VirtualMachine *vm)
 {
   Object *object = NULL;
   size_t i;
+  size_t survivors = 0;
 
   if (vm == NULL)
   {
     return;
   }
 
+  /*
+  free and compact in one pass: survivors slide down to the write index
+  */
   for (i = 0; i < vm->objects->length; i++)
   {
     object = (Object *)vm->objects->data[i];
     if (object->marked)
     {
       object->marked = FALSE;
+      vm->objects->data[survivors++] = object;
       continue;
     }
 
     object_free(object);
+  }
+
+  /*
+  keep dead slots NULL so stale pointers never linger after a sweep
+  */
+  for (i = survivors; i < vm->objects->length; i++)
+  {
     vm->objects->data[i] = NULL;
   }
 
-  stack_remove_nulls(vm->objects);
+  vm->objects->length = survivors;
 
   return;
 }
@@ -312,7 +331,9 @@ void vm_collect_garbage(VirtualMachine *vm)
   }
 
   mark(vm);
-  /* if tracing fails, sweeping would free reachable objects */
+  /*
+  if tracing fails, sweeping would free reachable objects
+  */
   if (trace(vm) == RET_ERR)
   {
     return;
