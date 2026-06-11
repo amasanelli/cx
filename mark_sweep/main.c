@@ -189,6 +189,40 @@ static void test_frames(void)
   vm_free(vm); /* frees the orphaned object too */
 }
 
+static void test_shared_references_track_once(void)
+{
+  VirtualMachine *vm;
+  Frame *frame1;
+  Frame *frame2;
+  Object *object;
+
+  vm = new_vm();
+  frame1 = vm_new_frame(vm);
+  frame2 = vm_new_frame(vm);
+  object = new_integer(1);
+
+  frame_reference_object(frame1, object);
+  frame_reference_object(frame2, object);
+  frame_reference_object(frame2, object);
+  /*
+  duplicate tracking would double free the object at sweep or vm_free
+  */
+  ASSERT("shared object is tracked once", vm->objects->length == 1);
+  ASSERT("first frame holds its reference", frame1->references->length == 1);
+  ASSERT("repeat references still stack per frame", frame2->references->length == 2);
+
+  vm_frame_free(vm);
+  vm_collect_garbage(vm);
+  ASSERT("object survives while one frame remains", vm->objects->length == 1);
+  ASSERT("survivor data is intact", object->data.as_int == 1);
+
+  vm_frame_free(vm);
+  vm_collect_garbage(vm);
+  ASSERT("object swept once after all frames die", vm->objects->length == 0);
+
+  vm_free(vm);
+}
+
 static void test_gc_root_survival(void)
 {
   VirtualMachine *vm;
@@ -303,6 +337,7 @@ int main(void)
   test_object_model();
   test_vm_lifecycle();
   test_frames();
+  test_shared_references_track_once();
   test_gc_root_survival();
   test_gc_unreachable();
   test_gc_trace_reachability();
