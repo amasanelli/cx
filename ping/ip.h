@@ -6,6 +6,7 @@
 
 #define IP_DEFAULT_TTL 64
 #define IP_HDR_SIZE 20
+#define IP_MAX_PLD_SIZE (65535 - IP_HDR_SIZE)
 #define IP_PROTO_ICMP 1
 
 typedef struct __attribute__((packed))

@@ -1,6 +1,6 @@
 #include <stdlib.h> /* malloc, free */
 #include <string.h> /* memset, memcpy */
-#include "net.h"    /* write_endian16, write_endian32, read_endian32, checksum */
+#include "net.h"    /* write_be16, write_be32, read_be32, checksum */
 #include "ip.h"     /* ip_hdr, IP_*, u8, u16, u32 */
 
 int ip_build_packet(u8 protocol, u32 src, u32 dst, const u8 *pld, u32 pld_len, u8 **pkt, u32 *pkt_len)
@@ -9,6 +9,11 @@ int ip_build_packet(u8 protocol, u32 src, u32 dst, const u8 *pld, u32 pld_len, u
   ip_hdr *hdr = NULL;
 
   if (!pkt || !pkt_len)
+  {
+    return ERR;
+  }
+
+  if (pld_len > IP_MAX_PLD_SIZE)
   {
     return ERR;
   }
@@ -34,17 +39,17 @@ int ip_build_packet(u8 protocol, u32 src, u32 dst, const u8 *pld, u32 pld_len, u
   hdr->ihl = 5; /* 20 bytes, no options */
   hdr->dscp = 0;
   hdr->ecn = 0;
-  write_endian16(hdr->tot_len, (u16)*pkt_len);
-  write_endian16(hdr->id, 0);
+  write_be16(hdr->tot_len, (u16)*pkt_len);
+  write_be16(hdr->id, 0);
   hdr->flags = 0;
   hdr->frag_off = 0;
   hdr->ttl = IP_DEFAULT_TTL;
   hdr->protocol = protocol;
   /* checksum = 0 before computing */
-  write_endian32(hdr->src, src);
-  write_endian32(hdr->dst, dst);
+  write_be32(hdr->src, src);
+  write_be32(hdr->dst, dst);
 
-  write_endian16(hdr->checksum, checksum(buf, IP_HDR_SIZE));
+  write_be16(hdr->checksum, checksum(buf, IP_HDR_SIZE));
 
   if (pld_len > 0)
   {
@@ -72,6 +77,8 @@ int parse_ip(const u8 *ip, u32 *out)
   {
     return ERR;
   }
+
+  *out = 0;
 
   for (i = 0; i < 4; i++)
   {
@@ -108,7 +115,7 @@ int parse_ip(const u8 *ip, u32 *out)
     return ERR;
   }
 
-  *out = read_endian32(bytes);
+  *out = read_be32(bytes);
 
   return OK;
 }

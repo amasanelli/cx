@@ -4,7 +4,7 @@
 #include <string.h>     /* memset */
 #include <sys/socket.h> /* socket, sendto, setsockopt, SOCK_RAW, sockaddr, ssize_t */
 #include <unistd.h>     /* close */
-#include "net.h"        /* write_endian32 */
+#include "net.h"        /* write_be32 */
 #include "socket.h"     /* u8, u32 */
 
 int build_socket_address(u32 ip, u16 port, u8 **addr, u32 *addr_len)
@@ -30,7 +30,7 @@ int build_socket_address(u32 ip, u16 port, u8 **addr, u32 *addr_len)
   memset(a, 0, sizeof(skt_addr));
   a->family = AF_INET;
   a->port = port;
-  write_endian32(a->ip, ip);
+  write_be32(a->ip, ip);
 
   *addr = buf;
 
@@ -44,6 +44,7 @@ int open_raw_icmp_socket(int *skt)
     return ERR;
   }
 
+  *skt = -1;
   *skt = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 
   if (*skt < 0)
@@ -63,6 +64,7 @@ int open_raw_ip_socket(int *skt)
     return ERR;
   }
 
+  *skt = -1;
   *skt = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
 
   if (*skt < 0)
