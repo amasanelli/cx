@@ -9,14 +9,14 @@ int main(int argc, char **argv)
 {
   u8 pld[] = "hello";
   u8 *icmp_pkt = NULL;
-  u32 icmp_len;
+  u32 icmp_len = 0;
   u8 *ip_pkt = NULL;
-  u32 ip_len;
+  u32 ip_len = 0;
   u32 src = 0; /* kernel fills src when 0.0.0.0 */
-  u32 dst;
+  u32 dst = 0;
   u8 *addr = NULL;
-  u32 addr_len;
-  int skt;
+  u32 addr_len = 0;
+  int skt = -1;
   u32 i;
 
   if (argc != 2)
