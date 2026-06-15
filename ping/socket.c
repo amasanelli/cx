@@ -9,25 +9,30 @@
 
 int build_socket_address(u32 ip, u16 port, u8 **addr, u32 *addr_len)
 {
-  skt_addr *a;
+  u8 *buf = NULL;
+  skt_addr *a = NULL;
 
   if (!addr || !addr_len)
   {
     return ERR;
   }
 
+  *addr = NULL;
   *addr_len = sizeof(skt_addr);
-  *addr = (u8 *)malloc(*addr_len);
-  if (!*addr)
+
+  buf = (u8 *)malloc(*addr_len);
+  if (!buf)
   {
     return ERR;
   }
 
-  a = (skt_addr *)*addr;
+  a = (skt_addr *)buf;
   memset(a, 0, sizeof(skt_addr));
   a->family = AF_INET;
   a->port = port;
   write_endian32(a->ip, ip);
+
+  *addr = buf;
 
   return OK;
 }
