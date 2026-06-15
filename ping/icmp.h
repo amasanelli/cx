@@ -1,0 +1,25 @@
+#ifndef ICMP_H
+#define ICMP_H
+
+#include "types.h" /* u8, u16, u32 */
+
+#define ICMP_ECHO_REQUEST 8
+#define ICMP_ECHO_REPLY 0
+#define ICMP_HDR_SIZE 8
+/* max IP payload (65535 - 20 byte IP header) minus ICMP header */
+#define ICMP_MAX_PLD_SIZE (65535 - 20 - ICMP_HDR_SIZE)
+
+typedef struct __attribute__((packed))
+{
+  u8 type;
+  u8 code;
+  u8 checksum[2];
+  u8 id[2];
+  u8 seq[2];
+} icmp_hdr;
+
+int icmp_build_packet(u8 type, u8 code, u16 id, u16 seq, const u8 *pld, u32 pld_len, u8 **pkt, u32 *pkt_len);
+
+int build_ping_packet(u16 id, u16 seq, const u8 *pld, u32 pld_len, u8 **pkt, u32 *pkt_len);
+
+#endif
