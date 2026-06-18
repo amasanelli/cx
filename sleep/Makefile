@@ -4,7 +4,7 @@ CFLAGS=-Wall -Wsign-compare -Werror -O3 -std=gnu89 -pedantic-errors -Wuninitiali
 
 .PHONY: clean all
 
-all: clean bin/sleep_inline bin/sleep_asm
+all: clean bin/sleep_inline bin/sleep_asm bin/sleep_min
 
 bin:
 	mkdir -p bin
@@ -12,11 +12,14 @@ bin:
 bin/sleep_inline: main_inline.c | bin
 	$(CC) $(CFLAGS) -o $@ $^
 
-bin/syscall.o: syscall.asm | bin
+syscall.o: syscall.asm | bin
 	$(CC) -c -x assembler $< -o $@
 
-bin/sleep_asm: main_asm.c bin/syscall.o | bin
+bin/sleep_asm: main_asm.c syscall.o | bin
 	$(CC) $(CFLAGS) -o $@ $^
 
+bin/sleep_min: sleep_min.asm | bin
+	$(CC) -nostdlib -x assembler $< -o $@
+
 clean:
-	$(RM) bin/sleep_inline bin/sleep_asm bin/syscall.o
+	$(RM) bin/sleep_inline bin/sleep_asm bin/sleep_min syscall.o
