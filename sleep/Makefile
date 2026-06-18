@@ -1,6 +1,6 @@
 CC=gcc
 RM=rm -f
-CFLAGS=-Wall -Wsign-compare -Werror -O3 -std=gnu89 -pedantic-errors -Wuninitialized -Wmaybe-uninitialized
+CFLAGS=-Wall -Wsign-compare -Werror -O3 -std=gnu89 -pedantic-errors -Wuninitialized -Wmaybe-uninitialized -nostdlib
 
 .PHONY: clean all
 

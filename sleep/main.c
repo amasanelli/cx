@@ -10,7 +10,7 @@ typedef struct timespec
 
 long syscall1(long number, long arg1)
 {
-  long result;
+  long result = 0;
 
   /* volatile: no reorder/deduplicate/eliminate. "=a"=rax out, "a"/"D"=rdi/rsi in.
      rcx/r11 clobbered: syscall saves rip->rcx and rflags->r11 so sysretq can restore
@@ -29,7 +29,7 @@ long syscall1(long number, long arg1)
 
 long syscall2(long number, long arg1, long arg2)
 {
-  long result;
+  long result = 0;
 
   /* volatile: no reorder/deduplicate/eliminate. "=a"=rax out, "a"/"D"/"S"=rdi/rsi/rdx in.
      rcx/r11 clobbered: cpu saves rip->rcx and rflags->r11 on syscall entry, destroying them.
@@ -44,7 +44,7 @@ long syscall2(long number, long arg1, long arg2)
 
 long syscall3(long number, long arg1, long arg2, long arg3)
 {
-  long result;
+  long result = 0;
 
   /* volatile: no reorder/deduplicate/eliminate. "=a"=rax out, "a"/"D"/"S"/"d"=rdi/rsi/rdx/rcx in.
      rcx/r11 clobbered: cpu saves rip->rcx and rflags->r11 on syscall entry, destroying them.
@@ -74,12 +74,14 @@ int parse_int(const char *raw_int)
 long unsigned strlen(const char *string)
 {
   const char *cursor = string;
+  long unsigned result = 0;
+
   while (*cursor)
   {
     cursor++;
   }
 
-  long unsigned result = cursor - string;
+  result = cursor - string;
   return result;
 }
 
@@ -98,14 +100,17 @@ void sleep(long seconds)
 
 int main(int argc, char *argv[])
 {
+  char *raw_seconds = 0;
+  long seconds = 0;
+
   if (argc != 2)
   {
     print("Usage: sleep NUMBER\nPause for NUMBER seconds\n");
     return 1;
   }
 
-  char *raw_seconds = argv[1];
-  long seconds = parse_int(raw_seconds);
+  raw_seconds = argv[1];
+  seconds = parse_int(raw_seconds);
 
   print("Sleeping for ");
   print(raw_seconds);
