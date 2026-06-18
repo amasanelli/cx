@@ -1,39 +1,31 @@
 # cx
 
-## Overview
-This repository captures a series of small, focused C projects that build toward a tiny runtime for dynamically typed values and explore different memory management strategies. It starts with a resizable stack implementation, layers on a boxed `Object` abstraction that can store integers, floats, strings, and arrays, and then experiments with both reference counting and mark-and-sweep garbage collection to manage those values automatically.
+C experiments across a few different areas — a tiny runtime with GC, syscall mechanics in asm, and raw network programming.
 
-## Repository layout
-| Directory | Description |
-| --- | --- |
-| `stack/` | Array-backed stack with push, pop, and peek operations plus automatic capacity growth, used throughout the other experiments as a lightweight container.
-| `object/` | Core boxed value type that supports multiple primitive kinds, dynamically sized arrays, membership checks, and simple addition semantics shared by all later projects.
-| `ref_count/` | Extends the object model with per-object reference counts, safe decrement traversal, and a minimal set abstraction to prevent double frees when visiting cyclic graphs.
-| `mark_sweep/` | Implements a tiny virtual machine that tracks stack frames and heap objects, performing mark, trace, and sweep phases to reclaim unreachable data (including cyclic structures).
+## Projects
 
-Each directory includes a `main.c` that exercises the module in isolation—handy for quick experiments or demos.
+| Directory     | What it is                                                       |
+| ------------- | ---------------------------------------------------------------- |
+| `stack/`      | Array-backed stack with automatic growth                         |
+| `object/`     | Boxed value type supporting ints, floats, strings, and arrays |
+| `ref_count/`  | Reference counting with cycle-safe traversal                     |
+| `mark_sweep/` | Tiny VM with mark-and-sweep GC, handles cycles cleanly           |
+| `sleep/`      | Sleep syscall in three ways: inline asm, extern asm, pure asm    |
+| `ping/`       | ICMP ping from scratch                                           |
 
-## Building and running the demos
-All projects rely on `gcc` and `make`. From the repository root you can build an individual demo by invoking `make` in its directory:
+## Building
 
-```bash
-make -C stack
-./stack/stack
-```
+Needs `gcc` and `make`. Run from any project directory:
 
 ```bash
-make -C object
-./object/object
+make -C stack && ./stack/stack
+make -C object && ./object/object
+make -C ref_count && ./ref_count/refcount
+make -C mark_sweep && ./mark_sweep/mark_sweep
+make -C sleep && ./sleep/bin/sleep_c_inline
+make -C sleep && ./sleep/bin/sleep_c_extern
+make -C sleep && ./sleep/bin/sleep_pure
+make -C ping && ./ping/bin/ping
 ```
 
-```bash
-make -C ref_count
-./ref_count/refcount
-```
-
-```bash
-make -C mark_sweep
-./mark_sweep/mark_sweep
-```
-
-Each `Makefile` defines a `clean` target if you want to rebuild from scratch.
+`make clean` works in each directory too.
