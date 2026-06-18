@@ -7,7 +7,7 @@ typedef struct timespec
   long tv_nsec;
 } timespec;
 
-/* implemented in syscall.s */
+/* implemented in sleep_c_extern.asm */
 long syscall1(long number, long arg1);
 long syscall2(long number, long arg1, long arg2);
 long syscall3(long number, long arg1, long arg2, long arg3);
@@ -74,3 +74,5 @@ int main(int argc, char *argv[])
 
   return 0;
 }
+
+/* _start and exit are defined in sleep_c_extern.asm -- linker resolves them at link time */
