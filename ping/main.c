@@ -1,9 +1,11 @@
 #include <stdio.h>  /* printf, perror, fprintf */
 #include <stdlib.h> /* free */
 #include <unistd.h> /* close */
+#include <string.h> /* memset */
 #include "icmp.h"   /* build_ping_packet */
 #include "ip.h"     /* build_ip_icmp_packet, parse_ip */
-#include "socket.h" /* open_raw_ip_socket, send_packet */
+#include "socket.h" /* open_raw_icmp_socket, send_packet */
+#include "net.h"
 
 int main(int argc, char **argv)
 {
@@ -14,10 +16,12 @@ int main(int argc, char **argv)
   u32 ip_len = 0;
   u32 src = 0; /* kernel fills src when 0.0.0.0 */
   u32 dst = 0;
-  u8 *addr = NULL;
-  u32 addr_len = 0;
+  skt_addr addr = {0};
   int skt = -1;
-  u32 i;
+  u8 buf[1500] = {0};
+  u32 rec = 0;
+  ip_hdr *hdr = NULL;
+  u32 ip_hdr_len = 0;
 
   if (argc != 2)
   {
@@ -33,55 +37,101 @@ int main(int argc, char **argv)
 
   if (build_ping_packet(1234, 1, pld, sizeof(pld) - 1, &icmp_pkt, &icmp_len) != OK)
   {
+    perror("build_ping_packet");
     return 1;
   }
 
-  for (i = 0; i < icmp_len; i++)
-  {
-    printf("%02x ", icmp_pkt[i]);
-  }
-  printf("\n");
-
   if (build_ip_icmp_packet(src, dst, icmp_pkt, icmp_len, &ip_pkt, &ip_len) != OK)
   {
+    perror("build_ip_icmp_packet");
     free(icmp_pkt);
     return 1;
   }
 
-  free(icmp_pkt);
-
-  for (i = 0; i < ip_len; i++)
+  printf("----- SENT -----\n");
+  if (print_ip_packet(ip_pkt, ip_len) != OK)
   {
-    printf("%02x ", ip_pkt[i]);
+    fprintf(stderr, "error printing IP packet\n");
+    return 1;
+  }
+  if (print_icmp_packet(icmp_pkt, icmp_len) != OK)
+  {
+    fprintf(stderr, "rerror printing ICMP packet\n");
+    return 1;
   }
   printf("\n");
 
-  if (open_raw_ip_socket(&skt) != OK)
+  free(icmp_pkt);
+
+  if (open_raw_icmp_socket(&skt) != OK)
   {
-    perror("socket");
+    perror("open_raw_icmp_socket");
     free(ip_pkt);
     return 1;
   }
 
-  if (build_socket_address(dst, 0, &addr, &addr_len) != OK)
+  if (build_socket_address(dst, 0, &addr) != OK)
   {
-    free(ip_pkt);
-    close(skt);
-    return 1;
-  }
-
-  if (send_packet(skt, addr, addr_len, ip_pkt, ip_len) != OK)
-  {
-    perror("sendto");
-    free(addr);
+    perror("build_socket_address");
     free(ip_pkt);
     close(skt);
     return 1;
   }
 
-  free(addr);
+  if (send_packet(skt, &addr, ip_pkt, ip_len) != OK)
+  {
+    perror("send_packet");
+    free(ip_pkt);
+    close(skt);
+    return 1;
+  }
+
   free(ip_pkt);
+
+  memset(buf, 0, sizeof(buf));
+
+  if (receive_packet(skt, buf, sizeof(buf), &rec) != OK)
+  {
+    perror("receive_packet");
+    close(skt);
+    return 1;
+  }
+
   close(skt);
+
+  if (rec < IP_HDR_SIZE)
+  {
+    fprintf(stderr, "reply too short for IP header\n");
+    return 1;
+  }
+
+  hdr = (ip_hdr *)buf;
+
+  if (hdr->ihl < 5)
+  {
+    fprintf(stderr, "invalid IP header length: %u\n", hdr->ihl);
+    return 1;
+  }
+
+  ip_hdr_len = hdr->ihl * 4;
+
+  if (rec < ip_hdr_len + ICMP_HDR_SIZE)
+  {
+    fprintf(stderr, "reply too short for ICMP header\n");
+    return 1;
+  }
+
+  printf("----- RECEIVED -----\n");
+  if (print_ip_packet(buf, rec) != OK)
+  {
+    fprintf(stderr, "error printing IP packet\n");
+    return 1;
+  }
+  if (print_icmp_packet(buf + ip_hdr_len, rec - ip_hdr_len) != OK)
+  {
+    fprintf(stderr, "rerror printing ICMP packet\n");
+    return 1;
+  }
 
   return 0;
 }

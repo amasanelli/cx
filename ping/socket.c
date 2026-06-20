@@ -7,55 +7,23 @@
 #include "net.h"        /* write_be32 */
 #include "socket.h"     /* u8, u32 */
 
-int build_socket_address(u32 ip, u16 port, u8 **addr, u32 *addr_len)
+int build_socket_address(u32 ip, u16 port, skt_addr *addr)
 {
-  u8 *buf = NULL;
-  skt_addr *a = NULL;
-
-  if (!addr || !addr_len)
+  if (!addr)
   {
     return ERR;
   }
 
-  *addr = NULL;
-  *addr_len = sizeof(skt_addr);
+  memset(addr, 0, sizeof(skt_addr));
 
-  buf = (u8 *)malloc(*addr_len);
-  if (!buf)
-  {
-    return ERR;
-  }
-
-  a = (skt_addr *)buf;
-  memset(a, 0, sizeof(skt_addr));
-  a->family = AF_INET;
-  a->port = port;
-  write_be32(a->ip, ip);
-
-  *addr = buf;
+  addr->family = AF_INET;
+  write_be16(addr->port, port);
+  write_be32(addr->ip, ip);
 
   return OK;
 }
 
 int open_raw_icmp_socket(int *skt)
-{
-  if (!skt)
-  {
-    return ERR;
-  }
-
-  *skt = -1;
-  *skt = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-
-  if (*skt < 0)
-  {
-    return ERR;
-  }
-
-  return OK;
-}
-
-int open_raw_ip_socket(int *skt)
 {
   int one = 1;
 
@@ -65,7 +33,7 @@ int open_raw_ip_socket(int *skt)
   }
 
   *skt = -1;
-  *skt = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+  *skt = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 
   if (*skt < 0)
   {
@@ -81,7 +49,7 @@ int open_raw_ip_socket(int *skt)
   return OK;
 }
 
-int send_packet(int skt, const u8 *addr, u32 addr_len, const u8 *pkt, u32 pkt_len)
+int send_packet(int skt, const skt_addr *addr, const u8 *pkt, u32 pkt_len)
 {
   ssize_t sent;
 
@@ -90,12 +58,33 @@ int send_packet(int skt, const u8 *addr, u32 addr_len, const u8 *pkt, u32 pkt_le
     return ERR;
   }
 
-  sent = sendto(skt, pkt, pkt_len, 0, (struct sockaddr *)addr, addr_len);
+  sent = sendto(skt, pkt, pkt_len, 0, (struct sockaddr *)addr, sizeof(skt_addr));
 
   if (sent < 0 || (u32)sent != pkt_len)
   {
     return ERR;
   }
+
+  return OK;
+}
+
+int receive_packet(int skt, u8 *buf, u32 buff_len, u32 *rec)
+{
+  ssize_t n;
+
+  if (!rec)
+  {
+    return ERR;
+  }
+
+  n = recvfrom(skt, buf, buff_len, 0, NULL, NULL);
+
+  if (n < 0)
+  {
+    return ERR;
+  }
+
+  *rec = (u32)n;
 
   return OK;
 }
