@@ -68,7 +68,7 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  if (build_ping_packet(1234, 1, pld, sizeof(pld) - 1, &icmp_pkt, &icmp_len) != OK)
+  if (build_ping_packet((u16)getpid(), 1, pld, sizeof(pld) - 1, &icmp_pkt, &icmp_len) != OK)
   {
     perror("build_ping_packet");
     close(skt);
