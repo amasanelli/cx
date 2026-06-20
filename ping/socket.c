@@ -62,7 +62,7 @@ int send_packet(int skt, const skt_addr *addr, const u8 *pkt, u32 pkt_len)
   return OK;
 }
 
-int get_ifindex(const char *iface, int *ifindex)
+int get_iface_index(const char *iface, int *ifindex)
 {
   if (!iface || !ifindex)
   {
@@ -75,6 +75,51 @@ int get_ifindex(const char *iface, int *ifindex)
   {
     return ERR;
   }
+
+  return OK;
+}
+
+int get_iface_ip(int skt, const char *iface, u32 *ip)
+{
+  struct ifreq ifr;
+
+  if (!iface || !ip)
+  {
+    return ERR;
+  }
+
+  memset(&ifr, 0, sizeof(ifr));
+  strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
+
+  if (ioctl(skt, SIOCGIFADDR, &ifr) < 0)
+  {
+    return ERR;
+  }
+
+  /* sin_addr.s_addr is NBO; read_be32 converts to host byte order so write_be32 encodes it correctly */
+  *ip = read_be32((const u8 *)&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr);
+
+  return OK;
+}
+
+int get_iface_mac(int skt, const char *iface, u8 *mac)
+{
+  struct ifreq ifr;
+
+  if (!iface || !mac)
+  {
+    return ERR;
+  }
+
+  memset(&ifr, 0, sizeof(ifr));
+  strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
+
+  if (ioctl(skt, SIOCGIFHWADDR, &ifr) < 0)
+  {
+    return ERR;
+  }
+
+  memcpy(mac, ifr.ifr_hwaddr.sa_data, ETH_ADDR_LEN);
 
   return OK;
 }

@@ -6,7 +6,7 @@
 int main(int argc, char **argv)
 {
   u8 pld[] = "hello";
-  u32 src = 0; /* kernel fills src when 0.0.0.0 */
+  u32 src = 0;
   u8 src_mac[ETH_ADDR_LEN] = {0};
   /* broadcast: we skip ARP, so we don't know the target's MAC; all hosts on the
    * segment receive the frame and the target responds based on the IP address */
@@ -42,15 +42,36 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  if (get_ifindex(argv[2], &ifindex) != OK)
+  if (get_iface_index(argv[2], &ifindex) != OK)
   {
     fprintf(stderr, "invalid interface: %s\n", argv[2]);
+    return 1;
+  }
+
+  if (open_raw_eth_socket(&skt) != OK)
+  {
+    perror("open_raw_eth_socket");
+    return 1;
+  }
+
+  if (get_iface_ip(skt, argv[2], &src) != OK)
+  {
+    fprintf(stderr, "failed to get IP for interface: %s\n", argv[2]);
+    close(skt);
+    return 1;
+  }
+
+  if (get_iface_mac(skt, argv[2], src_mac) != OK)
+  {
+    fprintf(stderr, "failed to get MAC for interface: %s\n", argv[2]);
+    close(skt);
     return 1;
   }
 
   if (build_ping_packet(1234, 1, pld, sizeof(pld) - 1, &icmp_pkt, &icmp_len) != OK)
   {
     perror("build_ping_packet");
+    close(skt);
     return 1;
   }
 
@@ -58,6 +79,7 @@ int main(int argc, char **argv)
   {
     perror("build_ip_icmp_packet");
     free(icmp_pkt);
+    close(skt);
     return 1;
   }
 
@@ -66,6 +88,7 @@ int main(int argc, char **argv)
     perror("build_eth_ip_packet");
     free(icmp_pkt);
     free(ip_pkt);
+    close(skt);
     return 1;
   }
 
@@ -89,13 +112,6 @@ int main(int argc, char **argv)
 
   free(icmp_pkt);
   free(ip_pkt);
-
-  if (open_raw_eth_socket(&skt) != OK)
-  {
-    perror("open_raw_eth_socket");
-    free(eth_pkt);
-    return 1;
-  }
 
   if (build_socket_address(ifindex, &addr) != OK)
   {

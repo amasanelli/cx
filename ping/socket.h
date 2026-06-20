@@ -1,10 +1,12 @@
 #ifndef SOCKET_H
 #define SOCKET_H
 
-#include <string.h>     /* memset */
-#include <sys/socket.h> /* socket, sendto, recvfrom, struct sockaddr, ssize_t, AF_PACKET, SOCK_RAW */
-#include <unistd.h>     /* close */
-#include <net/if.h>     /* if_nametoindex */
+#include <string.h>      /* memset */
+#include <sys/socket.h>  /* socket, sendto, recvfrom, struct sockaddr, ssize_t, AF_PACKET, SOCK_RAW */
+#include <sys/ioctl.h>   /* ioctl, SIOCGIFADDR, SIOCGIFHWADDR */
+#include <netinet/in.h>  /* struct sockaddr_in */
+#include <unistd.h>      /* close */
+#include <net/if.h>      /* if_nametoindex, struct ifreq */
 #include "types.h"      /* u8, u16, u32 */
 #include "net.h"        /* write_be16, write_be32 */
 #include "eth.h"
@@ -33,6 +35,10 @@ int build_socket_address(int ifindex, skt_addr *addr);
 
 int receive_packet(int skt, u8 *buf, u32 buff_len, u32 *rec);
 
-int get_ifindex(const char *iface, int *ifindex);
+int get_iface_index(const char *iface, int *ifindex);
+
+int get_iface_ip(int skt, const char *iface, u32 *ip);
+
+int get_iface_mac(int skt, const char *iface, u8 *mac);
 
 #endif
