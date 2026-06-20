@@ -4,9 +4,9 @@
 #include <stdlib.h> /* malloc, free */
 #include <stdio.h>  /* printf, sprintf */
 #include <string.h> /* memset, memcpy */
-#include <endian.h>
-#include "types.h"  /* u8, u16, u32 */
-#include "net.h"    /* write_be16, write_be32, read_be32, checksum */
+/* __BYTE_ORDER__ and __ORDER_BIG_ENDIAN__ are GCC built-ins, no include needed */
+#include "types.h" /* u8, u16, u32 */
+#include "net.h"   /* write_be16, write_be32, read_be32, checksum */
 
 #define IP_DEFAULT_TTL 64
 #define IP_HDR_SIZE 20
@@ -16,34 +16,34 @@
 
 typedef struct __attribute__((packed))
 {
-#if __BYTE_ORDER == __BIG_ENDIAN
-  u32 ver : 4;
-  u32 ihl : 4;
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  u32 ver : 4; /* IP version */
+  u32 ihl : 4; /* header length in 32-bit words */
 #else
-  u32 ihl : 4;
-  u32 ver : 4;
+  u32 ihl : 4; /* header length in 32-bit words */
+  u32 ver : 4; /* IP version */
 #endif
-#if __BYTE_ORDER == __BIG_ENDIAN
-  u32 dscp : 6;
-  u32 ecn : 2;
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  u32 dscp : 6; /* differentiated services code point (traffic priority) */
+  u32 ecn : 2;  /* explicit congestion notification */
 #else
-  u32 ecn : 2;
-  u32 dscp : 6;
+  u32 ecn : 2;  /* explicit congestion notification */
+  u32 dscp : 6; /* differentiated services code point (traffic priority) */
 #endif
-  u8 tot_len[2];
-  u8 id[2];
-#if __BYTE_ORDER == __BIG_ENDIAN
-  u32 flags : 3;
-  u32 frag_off : 13;
+  u8 tot_len[2]; /* total length: header + payload, network byte order */
+  u8 id[2];      /* packet identifier for fragment reassembly, network byte order */
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  u32 flags : 3;     /* control bits: DF (don't fragment), MF (more fragments) */
+  u32 frag_off : 13; /* fragment offset within the original datagram */
 #else
-  u32 frag_off : 13;
-  u32 flags : 3;
+  u32 frag_off : 13; /* fragment offset within the original datagram */
+  u32 flags : 3;     /* control bits: DF (don't fragment), MF (more fragments) */
 #endif
-  u8 ttl;
-  u8 protocol;
-  u8 checksum[2];
-  u8 src[4];
-  u8 dst[4];
+  u8 ttl;         /* max hops before the packet is discarded */
+  u8 protocol;    /* encapsulated protocol (IP_PROTO_ICMP=1, TCP=6, UDP=17) */
+  u8 checksum[2]; /* header-only checksum, network byte order */
+  u8 src[4];      /* source IP address, network byte order */
+  u8 dst[4];      /* destination IP address, network byte order */
 } ip_hdr;
 
 int ip_build_packet(u8 protocol, u32 src, u32 dst, const u8 *pld, u32 pld_len, u8 **pkt, u32 *pkt_len);

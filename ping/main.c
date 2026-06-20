@@ -1,32 +1,50 @@
 #include "icmp.h"
 #include "ip.h"
+#include "eth.h"
 #include "socket.h"
 
 int main(int argc, char **argv)
 {
   u8 pld[] = "hello";
+  u32 src = 0; /* kernel fills src when 0.0.0.0 */
+  u8 src_mac[ETH_ADDR_LEN] = {0};
+  /* broadcast: we skip ARP, so we don't know the target's MAC; all hosts on the
+   * segment receive the frame and the target responds based on the IP address */
+  u8 dst_mac[ETH_ADDR_LEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+  u32 dst = 0;
+  int ifindex = 0;
+
   u8 *icmp_pkt = NULL;
   u32 icmp_len = 0;
   u8 *ip_pkt = NULL;
   u32 ip_len = 0;
-  u32 src = 0; /* kernel fills src when 0.0.0.0 */
-  u32 dst = 0;
+  u8 *eth_pkt = NULL;
+  u32 eth_len = 0;
   skt_addr addr = {0};
+
   int skt = -1;
-  u8 buf[1500] = {0};
+
+  u8 buf[ETH_HDR_SIZE + ETH_MAX_PLD_SIZE] = {0};
   u32 rec = 0;
   ip_hdr *hdr = NULL;
   u32 ip_hdr_len = 0;
 
-  if (argc != 2)
+  if (argc != 3)
   {
-    printf("usage:\n./ping IP\n");
+    printf("usage:\n./ping <IP> <iface>\n");
     return 1;
   }
 
   if (parse_ip((const u8 *)argv[1], &dst) != OK)
   {
     fprintf(stderr, "invalid IP: %s\n", argv[1]);
+    return 1;
+  }
+
+  if (get_ifindex(argv[2], &ifindex) != OK)
+  {
+    fprintf(stderr, "invalid interface: %s\n", argv[2]);
     return 1;
   }
 
@@ -43,7 +61,20 @@ int main(int argc, char **argv)
     return 1;
   }
 
+  if (build_eth_ip_packet(dst_mac, src_mac, ip_pkt, ip_len, &eth_pkt, &eth_len) != OK)
+  {
+    perror("build_eth_ip_packet");
+    free(icmp_pkt);
+    free(ip_pkt);
+    return 1;
+  }
+
   printf("----- SENT -----\n");
+  if (print_eth_packet(eth_pkt, eth_len) != OK)
+  {
+    fprintf(stderr, "error printing ETH packet\n");
+    return 1;
+  }
   if (print_ip_packet(ip_pkt, ip_len) != OK)
   {
     fprintf(stderr, "error printing IP packet\n");
@@ -51,37 +82,38 @@ int main(int argc, char **argv)
   }
   if (print_icmp_packet(icmp_pkt, icmp_len) != OK)
   {
-    fprintf(stderr, "rerror printing ICMP packet\n");
+    fprintf(stderr, "error printing ICMP packet\n");
     return 1;
   }
   printf("\n");
 
   free(icmp_pkt);
+  free(ip_pkt);
 
-  if (open_raw_icmp_socket(&skt) != OK)
+  if (open_raw_eth_socket(&skt) != OK)
   {
-    perror("open_raw_icmp_socket");
-    free(ip_pkt);
+    perror("open_raw_eth_socket");
+    free(eth_pkt);
     return 1;
   }
 
-  if (build_socket_address(dst, 0, &addr) != OK)
+  if (build_socket_address(ifindex, &addr) != OK)
   {
     perror("build_socket_address");
-    free(ip_pkt);
+    free(eth_pkt);
     close(skt);
     return 1;
   }
 
-  if (send_packet(skt, &addr, ip_pkt, ip_len) != OK)
+  if (send_packet(skt, &addr, eth_pkt, eth_len) != OK)
   {
     perror("send_packet");
-    free(ip_pkt);
+    free(eth_pkt);
     close(skt);
     return 1;
   }
 
-  free(ip_pkt);
+  free(eth_pkt);
 
   memset(buf, 0, sizeof(buf));
 
@@ -94,13 +126,13 @@ int main(int argc, char **argv)
 
   close(skt);
 
-  if (rec < IP_HDR_SIZE)
+  if (rec < ETH_HDR_SIZE + IP_HDR_SIZE)
   {
-    fprintf(stderr, "reply too short for IP header\n");
+    fprintf(stderr, "reply too short for ETH+IP header\n");
     return 1;
   }
 
-  hdr = (ip_hdr *)buf;
+  hdr = (ip_hdr *)(buf + ETH_HDR_SIZE);
 
   if (hdr->ihl < 5)
   {
@@ -110,21 +142,26 @@ int main(int argc, char **argv)
 
   ip_hdr_len = hdr->ihl * 4;
 
-  if (rec < ip_hdr_len + ICMP_HDR_SIZE)
+  if (rec < ETH_HDR_SIZE + ip_hdr_len + ICMP_HDR_SIZE)
   {
     fprintf(stderr, "reply too short for ICMP header\n");
     return 1;
   }
 
   printf("----- RECEIVED -----\n");
-  if (print_ip_packet(buf, rec) != OK)
+  if (print_eth_packet(buf, rec) != OK)
+  {
+    fprintf(stderr, "error printing ETH packet\n");
+    return 1;
+  }
+  if (print_ip_packet(buf + ETH_HDR_SIZE, rec - ETH_HDR_SIZE) != OK)
   {
     fprintf(stderr, "error printing IP packet\n");
     return 1;
   }
-  if (print_icmp_packet(buf + ip_hdr_len, rec - ip_hdr_len) != OK)
+  if (print_icmp_packet(buf + ETH_HDR_SIZE + ip_hdr_len, rec - ETH_HDR_SIZE - ip_hdr_len) != OK)
   {
-    fprintf(stderr, "rerror printing ICMP packet\n");
+    fprintf(stderr, "error printing ICMP packet\n");
     return 1;
   }
 

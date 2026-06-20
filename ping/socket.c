@@ -1,6 +1,29 @@
 #include "socket.h"
 
-int build_socket_address(u32 ip, u16 port, skt_addr *addr)
+int open_raw_eth_socket(int *skt)
+{
+  u8 proto[2] = {0};
+
+  if (!skt)
+  {
+    return ERR;
+  }
+
+  /* ETH_P_ALL: capture every Ethernet frame type (passed in network byte order) */
+  write_be16(proto, (u16)ETH_P_ALL);
+
+  *skt = -1;
+  *skt = socket(AF_PACKET, SOCK_RAW, (int)(*(const u16 *)proto));
+
+  if (*skt < 0)
+  {
+    return ERR;
+  }
+
+  return OK;
+}
+
+int build_socket_address(int ifindex, skt_addr *addr)
 {
   if (!addr)
   {
@@ -9,35 +32,13 @@ int build_socket_address(u32 ip, u16 port, skt_addr *addr)
 
   memset(addr, 0, sizeof(skt_addr));
 
-  addr->family = AF_INET;
-  write_be16(addr->port, port);
-  write_be32(addr->ip, ip);
-
-  return OK;
-}
-
-int open_raw_icmp_socket(int *skt)
-{
-  int one = 1;
-
-  if (!skt)
-  {
-    return ERR;
-  }
-
-  *skt = -1;
-  *skt = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-
-  if (*skt < 0)
-  {
-    return ERR;
-  }
-
-  if (setsockopt(*skt, IPPROTO_IP, IP_HDRINCL, &one, sizeof(one)) < 0)
-  {
-    close(*skt);
-    return ERR;
-  }
+  addr->family = AF_PACKET;                         /* raw link-layer: gives access to full Ethernet frames */
+  write_be16((u8 *)&addr->protocol, ETHER_TYPE_IP); /* we are sending IPv4 packets */
+  addr->ifindex = ifindex;                          /* NIC to send/recv on */
+  /* hatype  (hw addr type)   — kernel fills on recv, ignored by sendto */
+  /* pkttype (packet dir)     — kernel fills on recv, ignored by sendto */
+  /* halen   (hw addr length) — not needed: dst MAC already in pre-built frame */
+  /* addr    (hw addr)        — not needed: dst MAC already in pre-built frame */
 
   return OK;
 }
@@ -54,6 +55,23 @@ int send_packet(int skt, const skt_addr *addr, const u8 *pkt, u32 pkt_len)
   sent = sendto(skt, pkt, pkt_len, 0, (struct sockaddr *)addr, sizeof(skt_addr));
 
   if (sent < 0 || (u32)sent != pkt_len)
+  {
+    return ERR;
+  }
+
+  return OK;
+}
+
+int get_ifindex(const char *iface, int *ifindex)
+{
+  if (!iface || !ifindex)
+  {
+    return ERR;
+  }
+
+  *ifindex = (int)if_nametoindex(iface);
+
+  if (*ifindex == 0)
   {
     return ERR;
   }

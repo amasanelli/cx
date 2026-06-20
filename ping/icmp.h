@@ -15,11 +15,11 @@
 
 typedef struct __attribute__((packed))
 {
-  u8 type;
-  u8 code;
-  u8 checksum[2];
-  u8 id[2];
-  u8 seq[2];
+  u8 type;        /* message type (ICMP_ECHO_REQUEST, ICMP_ECHO_REPLY, ...) */
+  u8 code;        /* subtype within the message type */
+  u8 checksum[2]; /* header + data checksum, network byte order */
+  u8 id[2];       /* identifies the echo session, network byte order */
+  u8 seq[2];      /* sequence number to match replies, network byte order */
 } icmp_hdr;
 
 int icmp_build_packet(u8 type, u8 code, u16 id, u16 seq, const u8 *pld, u32 pld_len, u8 **pkt, u32 *pkt_len);

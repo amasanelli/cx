@@ -33,19 +33,19 @@ int ip_build_packet(u8 protocol, u32 src, u32 dst, const u8 *pld, u32 pld_len, u
 
   hdr = (ip_hdr *)buf;
 
-  hdr->ver = 4;
-  hdr->ihl = 5; /* 20 bytes, no options */
-  hdr->dscp = 0;
-  hdr->ecn = 0;
-  write_be16(hdr->tot_len, (u16)*pkt_len);
-  write_be16(hdr->id, g_ip_id++);
-  hdr->flags = 0;
-  hdr->frag_off = 0;
-  hdr->ttl = IP_DEFAULT_TTL;
-  hdr->protocol = protocol;
+  hdr->ver = 4;                            /* IPv4 */
+  hdr->ihl = 5;                            /* 20 bytes, no options */
+  hdr->dscp = 0;                           /* default service class, no priority */
+  hdr->ecn = 0;                            /* no congestion notification */
+  write_be16(hdr->tot_len, (u16)*pkt_len); /* header + payload size */
+  write_be16(hdr->id, g_ip_id++);          /* unique per-packet, auto-incremented */
+  hdr->flags = 0;                          /* fragmentation allowed */
+  hdr->frag_off = 0;                       /* not a fragment */
+  hdr->ttl = IP_DEFAULT_TTL;               /* 64 hops */
+  hdr->protocol = protocol;                /* encapsulated protocol (passed in) */
   /* checksum = 0 before computing */
-  write_be32(hdr->src, src);
-  write_be32(hdr->dst, dst);
+  write_be32(hdr->src, src); /* sender's IP */
+  write_be32(hdr->dst, dst); /* target IP */
 
   write_be16(hdr->checksum, checksum(buf, IP_HDR_SIZE));
 

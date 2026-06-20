@@ -10,7 +10,12 @@ int icmp_build_packet(u8 type, u8 code, u16 id, u16 seq, const u8 *pld, u32 pld_
     return ERR;
   }
 
-  if (pld_len > 0 && (!pld || pld_len > ICMP_MAX_PLD_SIZE))
+  if (pld_len > ICMP_MAX_PLD_SIZE)
+  {
+    return ERR;
+  }
+
+  if (pld_len > 0 && !pld)
   {
     return ERR;
   }
@@ -27,11 +32,11 @@ int icmp_build_packet(u8 type, u8 code, u16 id, u16 seq, const u8 *pld, u32 pld_
 
   hdr = (icmp_hdr *)buf;
 
-  hdr->type = type;
-  hdr->code = code;
-  /* checksum = 0 */
-  write_be16(hdr->id, id);
-  write_be16(hdr->seq, seq);
+  hdr->type = type; /* message type (passed in) */
+  hdr->code = code; /* subtype (passed in, 0 for echo request) */
+  /* checksum = 0 before computing */
+  write_be16(hdr->id, id);   /* echo session identifier */
+  write_be16(hdr->seq, seq); /* sequence number to match reply */
 
   if (pld_len > 0)
   {
