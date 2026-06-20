@@ -1,8 +1,5 @@
-#include "icmp.h"
-#include "ip.h"
-#include "eth.h"
-#include "socket.h"
-#include <time.h> /* clock_gettime, struct timespec, CLOCK_MONOTONIC */
+#include "ping.h"
+#include "config.h" /* PING_COUNT */
 
 int main(int argc, char **argv)
 {
@@ -15,26 +12,16 @@ int main(int argc, char **argv)
 
   u32 dst = 0;
   int ifindex = 0;
-
-  u8 *icmp_pkt = NULL;
-  u32 icmp_len = 0;
-  u8 *ip_pkt = NULL;
-  u32 ip_len = 0;
-  u8 *eth_pkt = NULL;
-  u32 eth_len = 0;
   skt_addr addr = {0};
-
   int skt = -1;
 
-  u8 buf[ETH_HDR_SIZE + ETH_MAX_PLD_SIZE] = {0};
-  u32 rec = 0;
-  const ip_hdr *iphdr = NULL;
-  const eth_hdr *ethhdr = NULL;
-  const icmp_hdr *icmphdr = NULL;
-  u32 ip_hdr_len = 0;
-  struct timespec t_send = {0};
-  struct timespec t_recv = {0};
+  u16 seq = 0;
+  u32 sent = 0;
+  u32 received = 0;
   long rtt_ms = 0;
+  long rtt_min = 0;
+  long rtt_max = 0;
+  long rtt_sum = 0;
 
   if (argc != 3)
   {
@@ -82,154 +69,44 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  if (build_ping_packet((u16)getpid(), 1, pld, sizeof(pld) - 1, &icmp_pkt, &icmp_len) != OK)
-  {
-    perror("build_ping_packet");
-    close(skt);
-    return 1;
-  }
-
-  if (build_ip_icmp_packet(src, dst, icmp_pkt, icmp_len, &ip_pkt, &ip_len) != OK)
-  {
-    perror("build_ip_icmp_packet");
-    free(icmp_pkt);
-    close(skt);
-    return 1;
-  }
-
-  if (build_eth_ip_packet(dst_mac, src_mac, ip_pkt, ip_len, &eth_pkt, &eth_len) != OK)
-  {
-    perror("build_eth_ip_packet");
-    free(icmp_pkt);
-    free(ip_pkt);
-    close(skt);
-    return 1;
-  }
-
-  printf("----- SENT -----\n");
-  if (print_eth_packet(eth_pkt, eth_len) != OK)
-  {
-    fprintf(stderr, "error printing ETH packet\n");
-    return 1;
-  }
-  if (print_ip_packet(ip_pkt, ip_len) != OK)
-  {
-    fprintf(stderr, "error printing IP packet\n");
-    return 1;
-  }
-  if (print_icmp_packet(icmp_pkt, icmp_len) != OK)
-  {
-    fprintf(stderr, "error printing ICMP packet\n");
-    return 1;
-  }
-  printf("\n");
-
-  free(icmp_pkt);
-  free(ip_pkt);
-
   if (build_socket_address(ifindex, &addr) != OK)
   {
     perror("build_socket_address");
-    free(eth_pkt);
     close(skt);
     return 1;
   }
 
-  clock_gettime(CLOCK_MONOTONIC, &t_send);
-
-  if (send_packet(skt, &addr, eth_pkt, eth_len) != OK)
+  for (seq = 1; seq <= PING_COUNT; seq++)
   {
-    perror("send_packet");
-    free(eth_pkt);
-    close(skt);
-    return 1;
+    sent++;
+
+    if (ping(skt, &addr, src, dst, src_mac, dst_mac, (u16)getpid(), seq, pld, sizeof(pld) - 1, &rtt_ms) != OK)
+    {
+      fprintf(stderr, "request timeout for seq=%d\n", seq);
+      continue;
+    }
+
+    received++;
+    rtt_sum += rtt_ms;
+    if (received == 1 || rtt_ms < rtt_min)
+    {
+      rtt_min = rtt_ms;
+    }
+    if (rtt_ms > rtt_max)
+    {
+      rtt_max = rtt_ms;
+    }
   }
-
-  free(eth_pkt);
-
-  /* loop until we receive an ICMP echo reply from the target, or timeout */
-  for (;;)
-  {
-    memset(buf, 0, sizeof(buf));
-
-    if (receive_packet(skt, buf, sizeof(buf), &rec) != OK)
-    {
-      perror("receive_packet");
-      close(skt);
-      return 1;
-    }
-
-    if (rec < ETH_HDR_SIZE + IP_HDR_SIZE + ICMP_HDR_SIZE)
-    {
-      continue;
-    }
-
-    ethhdr = (const eth_hdr *)buf;
-    if (read_be16(ethhdr->ethertype) != ETHER_TYPE_IP)
-    {
-      continue;
-    }
-
-    iphdr = (const ip_hdr *)(buf + ETH_HDR_SIZE);
-    if (iphdr->ihl < 5)
-    {
-      continue;
-    }
-
-    ip_hdr_len = iphdr->ihl * 4;
-
-    if (rec < ETH_HDR_SIZE + ip_hdr_len + ICMP_HDR_SIZE)
-    {
-      continue;
-    }
-
-    if (iphdr->protocol != IP_PROTO_ICMP)
-    {
-      continue;
-    }
-
-    if (read_be32(iphdr->src) != dst)
-    {
-      continue;
-    }
-
-    icmphdr = (const icmp_hdr *)(buf + ETH_HDR_SIZE + ip_hdr_len);
-    if (icmphdr->type != ICMP_ECHO_REPLY)
-    {
-      continue;
-    }
-
-    if (read_be16(icmphdr->id) != (u16)getpid())
-    {
-      continue;
-    }
-
-    clock_gettime(CLOCK_MONOTONIC, &t_recv);
-    break;
-  }
-
-  rtt_ms = (t_recv.tv_sec - t_send.tv_sec) * 1000 + (t_recv.tv_nsec - t_send.tv_nsec) / 1000000;
 
   close(skt);
 
-  printf("----- RECEIVED -----\n");
-  if (print_eth_packet(buf, rec) != OK)
+  printf("----- PING STATISTICS -----\n");
+  printf("%u transmitted, %u received, %u%% loss\n", sent, received, sent > 0 ? (sent - received) * 100 / sent : 0);
+  if (received > 0)
   {
-    fprintf(stderr, "error printing ETH packet\n");
-    return 1;
+    printf("rtt min/avg/max = %ld/%ld/%ld ms\n", rtt_min, rtt_sum / (long)received, rtt_max);
   }
-  if (print_ip_packet(buf + ETH_HDR_SIZE, rec - ETH_HDR_SIZE) != OK)
-  {
-    fprintf(stderr, "error printing IP packet\n");
-    return 1;
-  }
-  if (print_icmp_packet(buf + ETH_HDR_SIZE + ip_hdr_len, rec - ETH_HDR_SIZE - ip_hdr_len) != OK)
-  {
-    fprintf(stderr, "error printing ICMP packet\n");
-    return 1;
-  }
-
-  printf("\nrtt: %ld ms\n", rtt_ms);
+  printf("----- PING STATISTICS -----\n");
 
   return 0;
 }

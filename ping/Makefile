@@ -1,7 +1,7 @@
 CC=gcc
 RM=rm -f
 CFLAGS=-Wall -Wsign-compare -Werror -O3 -std=gnu89 -pedantic-errors -Wuninitialized -Wmaybe-uninitialized
-SRC=icmp.c socket.c net.c ip.c eth.c
+SRC=icmp.c socket.c net.c ip.c eth.c ping.c
 
 .PHONY: clean all
 
