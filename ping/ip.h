@@ -1,8 +1,12 @@
 #ifndef IP_H
 #define IP_H
 
+#include <stdlib.h> /* malloc, free */
+#include <stdio.h>  /* printf, sprintf */
+#include <string.h> /* memset, memcpy */
 #include <endian.h>
-#include "types.h" /* u8, u16, u32 */
+#include "types.h"  /* u8, u16, u32 */
+#include "net.h"    /* write_be16, write_be32, read_be32, checksum */
 
 #define IP_DEFAULT_TTL 64
 #define IP_HDR_SIZE 20

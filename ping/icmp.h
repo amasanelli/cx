@@ -1,7 +1,11 @@
 #ifndef ICMP_H
 #define ICMP_H
 
-#include "types.h" /* u8, u16, u32 */
+#include <stdlib.h> /* malloc */
+#include <stdio.h>  /* printf */
+#include <string.h> /* memset, memcpy */
+#include "types.h"  /* u8, u16, u32 */
+#include "net.h"    /* write_be16, checksum */
 
 #define ICMP_ECHO_REQUEST 8
 #define ICMP_ECHO_REPLY 0

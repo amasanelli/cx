@@ -1,8 +1,4 @@
-#include <stdlib.h> /* malloc */
-#include <stdio.h>  /* printf */
-#include <string.h> /* memset, memcpy */
-#include "net.h"    /* write_be16, checksum */
-#include "icmp.h"   /* icmp_hdr, ICMP_*, u8, u16, u32 */
+#include "icmp.h"
 
 int icmp_build_packet(u8 type, u8 code, u16 id, u16 seq, const u8 *pld, u32 pld_len, u8 **pkt, u32 *pkt_len)
 {

@@ -1,11 +1,4 @@
-#include <netinet/in.h> /* IPPROTO_ICMP, IPPROTO_RAW, AF_INET */
-#include <netinet/ip.h> /* IP_HDRINCL */
-#include <stdlib.h>     /* malloc */
-#include <string.h>     /* memset */
-#include <sys/socket.h> /* socket, sendto, setsockopt, SOCK_RAW, sockaddr, ssize_t */
-#include <unistd.h>     /* close */
-#include "net.h"        /* write_be32 */
-#include "socket.h"     /* u8, u32 */
+#include "socket.h"
 
 int build_socket_address(u32 ip, u16 port, skt_addr *addr)
 {

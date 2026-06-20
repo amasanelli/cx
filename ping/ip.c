@@ -1,8 +1,4 @@
-#include <stdlib.h> /* malloc, free */
-#include <stdio.h>  /* printf, sprintf */
-#include <string.h> /* memset, memcpy */
-#include "net.h"    /* write_be16, write_be32, read_be32, checksum */
-#include "ip.h"     /* ip_hdr, IP_*, u8, u16, u32 */
+#include "ip.h"
 
 int ip_build_packet(u8 protocol, u32 src, u32 dst, const u8 *pld, u32 pld_len, u8 **pkt, u32 *pkt_len)
 {

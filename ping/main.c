@@ -1,11 +1,6 @@
-#include <stdio.h>  /* printf, perror, fprintf */
-#include <stdlib.h> /* free */
-#include <unistd.h> /* close */
-#include <string.h> /* memset */
-#include "icmp.h"   /* build_ping_packet */
-#include "ip.h"     /* build_ip_icmp_packet, parse_ip */
-#include "socket.h" /* open_raw_icmp_socket, send_packet */
-#include "net.h"
+#include "icmp.h"
+#include "ip.h"
+#include "socket.h"
 
 int main(int argc, char **argv)
 {
