@@ -70,10 +70,10 @@ int build_ip_icmp_packet(u32 src, u32 dst, const u8 *pld, u32 pld_len, u8 **pkt,
 
 int parse_ip(const u8 *ip, u32 *out)
 {
-  int i;
-  u32 val;
+  int i = 0;
+  u32 val = 0;
   const u8 *p = ip;
-  u8 bytes[4];
+  u8 bytes[4] = {0};
 
   if (!ip || !out)
   {
@@ -126,7 +126,7 @@ int ip_string(u32 ip, u8 *out, u32 out_len)
 {
   int i = 0;
   int len = 0;
-  u8 byte;
+  u8 byte = 0;
 
   if (!out || out_len < (u32)IP_STR_MAX_LEN)
   {
@@ -151,7 +151,7 @@ int ip_string(u32 ip, u8 *out, u32 out_len)
 int print_ip_packet(const u8 *pkt, u32 pkt_len)
 {
   const ip_hdr *hdr = NULL;
-  u32 i;
+  u32 i = 0;
   u8 src_str[16] = {0};
   u8 dst_str[16] = {0};
 

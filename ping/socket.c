@@ -51,7 +51,7 @@ int open_raw_icmp_socket(int *skt)
 
 int send_packet(int skt, const skt_addr *addr, const u8 *pkt, u32 pkt_len)
 {
-  ssize_t sent;
+  ssize_t sent = -1;
 
   if (!addr || !pkt)
   {
@@ -70,7 +70,7 @@ int send_packet(int skt, const skt_addr *addr, const u8 *pkt, u32 pkt_len)
 
 int receive_packet(int skt, u8 *buf, u32 buff_len, u32 *rec)
 {
-  ssize_t n;
+  ssize_t n = -1;
 
   if (!rec)
   {

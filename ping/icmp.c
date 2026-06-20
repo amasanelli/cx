@@ -57,7 +57,7 @@ int build_ping_packet(u16 id, u16 seq, const u8 *pld, u32 pld_len, u8 **pkt, u32
 int print_icmp_packet(const u8 *pkt, u32 pkt_len)
 {
   const icmp_hdr *hdr = NULL;
-  u32 i;
+  u32 i = 0;
 
   if (!pkt || pkt_len < ICMP_HDR_SIZE)
   {
