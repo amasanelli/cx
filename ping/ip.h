@@ -2,7 +2,7 @@
 #define IP_H
 
 #include <stdlib.h> /* malloc, free */
-#include <stdio.h>  /* printf, sprintf */
+#include <stdio.h>  /* printf */
 #include <string.h> /* memset, memcpy */
 /* __BYTE_ORDER__ and __ORDER_BIG_ENDIAN__ are GCC built-ins, no include needed */
 #include "types.h" /* u8, u16, u32 */

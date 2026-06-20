@@ -1,16 +1,16 @@
 #ifndef SOCKET_H
 #define SOCKET_H
 
-#include <string.h>      /* memset */
+#include <string.h>      /* memset, memcpy, strncpy */
 #include <sys/socket.h>  /* socket, sendto, recvfrom, setsockopt, struct sockaddr, ssize_t, AF_PACKET, SOCK_RAW, SO_RCVTIMEO */
 #include <sys/time.h>    /* struct timeval */
-#include <sys/ioctl.h>   /* ioctl, SIOCGIFADDR, SIOCGIFHWADDR */
+#include <sys/ioctl.h>   /* ioctl, SIOCGIFINDEX, SIOCGIFADDR, SIOCGIFHWADDR */
 #include <netinet/in.h>  /* struct sockaddr_in */
 #include <unistd.h>      /* close */
-#include <net/if.h>      /* if_nametoindex, struct ifreq */
-#include "types.h"      /* u8, u16, u32 */
-#include "net.h"        /* write_be16, write_be32 */
-#include "eth.h"
+#include <net/if.h>      /* struct ifreq, IFNAMSIZ */
+#include "types.h"       /* u8, u16, u32 */
+#include "net.h"         /* write_be16, read_be32 */
+#include "eth.h"         /* ETH_ADDR_LEN */
 
 #define ETH_P_ALL 0x0003
 /* #define SOCK_RAW 3 */
@@ -36,7 +36,7 @@ int build_socket_address(int ifindex, skt_addr *addr);
 
 int receive_packet(int skt, u8 *buf, u32 buff_len, u32 *rec);
 
-int get_iface_index(const char *iface, int *ifindex);
+int get_iface_index(int skt, const char *iface, int *ifindex);
 
 int get_iface_ip(int skt, const char *iface, u32 *ip);
 

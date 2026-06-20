@@ -44,12 +44,6 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  if (get_iface_index(argv[2], &ifindex) != OK)
-  {
-    fprintf(stderr, "invalid interface: %s\n", argv[2]);
-    return 1;
-  }
-
   if (open_raw_eth_socket(&skt) != OK)
   {
     perror("open_raw_eth_socket");
@@ -59,6 +53,13 @@ int main(int argc, char **argv)
   if (set_recv_timeout(skt, 2) != OK)
   {
     perror("set_recv_timeout");
+    close(skt);
+    return 1;
+  }
+
+  if (get_iface_index(skt, argv[2], &ifindex) != OK)
+  {
+    fprintf(stderr, "invalid interface: %s\n", argv[2]);
     close(skt);
     return 1;
   }

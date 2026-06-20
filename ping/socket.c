@@ -62,19 +62,24 @@ int send_packet(int skt, const skt_addr *addr, const u8 *pkt, u32 pkt_len)
   return OK;
 }
 
-int get_iface_index(const char *iface, int *ifindex)
+int get_iface_index(int skt, const char *iface, int *ifindex)
 {
+  struct ifreq ifr;
+
   if (!iface || !ifindex)
   {
     return ERR;
   }
 
-  *ifindex = (int)if_nametoindex(iface);
+  memset(&ifr, 0, sizeof(ifr));
+  strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
 
-  if (*ifindex == 0)
+  if (ioctl(skt, SIOCGIFINDEX, &ifr) < 0)
   {
     return ERR;
   }
+
+  *ifindex = ifr.ifr_ifindex;
 
   return OK;
 }

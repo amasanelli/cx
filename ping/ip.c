@@ -123,6 +123,9 @@ int ip_string(u32 ip, u8 *out, u32 out_len)
   int i = 0;
   int len = 0;
   u8 byte = 0;
+  u8 tmp[3];
+  int digits = 0;
+  int j = 0;
 
   if (!out || out_len < (u32)IP_STR_MAX_LEN)
   {
@@ -132,7 +135,25 @@ int ip_string(u32 ip, u8 *out, u32 out_len)
   for (i = 0; i < 4; i++)
   {
     byte = (ip >> (24 - i * 8)) & 0xFF;
-    len += sprintf((char *)(out + len), "%d", byte);
+
+    digits = 0;
+    if (byte == 0)
+    {
+      out[len++] = '0';
+    }
+    else
+    {
+      while (byte > 0)
+      {
+        tmp[digits++] = '0' + (byte % 10);
+        byte /= 10;
+      }
+      for (j = digits - 1; j >= 0; j--)
+      {
+        out[len++] = tmp[j];
+      }
+    }
+
     if (i < 3)
     {
       out[len++] = '.';
