@@ -27,7 +27,9 @@ int main(int argc, char **argv)
 
   u8 buf[ETH_HDR_SIZE + ETH_MAX_PLD_SIZE] = {0};
   u32 rec = 0;
-  ip_hdr *hdr = NULL;
+  const ip_hdr *iphdr = NULL;
+  const eth_hdr *ethhdr = NULL;
+  const icmp_hdr *icmphdr = NULL;
   u32 ip_hdr_len = 0;
 
   if (argc != 3)
@@ -51,6 +53,13 @@ int main(int argc, char **argv)
   if (open_raw_eth_socket(&skt) != OK)
   {
     perror("open_raw_eth_socket");
+    return 1;
+  }
+
+  if (set_recv_timeout(skt, 2) != OK)
+  {
+    perror("set_recv_timeout");
+    close(skt);
     return 1;
   }
 
@@ -131,38 +140,67 @@ int main(int argc, char **argv)
 
   free(eth_pkt);
 
-  memset(buf, 0, sizeof(buf));
-
-  if (receive_packet(skt, buf, sizeof(buf), &rec) != OK)
+  /* loop until we receive an ICMP echo reply from the target, or timeout */
+  for (;;)
   {
-    perror("receive_packet");
-    close(skt);
-    return 1;
+    memset(buf, 0, sizeof(buf));
+
+    if (receive_packet(skt, buf, sizeof(buf), &rec) != OK)
+    {
+      perror("receive_packet");
+      close(skt);
+      return 1;
+    }
+
+    if (rec < ETH_HDR_SIZE + IP_HDR_SIZE + ICMP_HDR_SIZE)
+    {
+      continue;
+    }
+
+    ethhdr = (const eth_hdr *)buf;
+    if (read_be16(ethhdr->ethertype) != ETHER_TYPE_IP)
+    {
+      continue;
+    }
+
+    iphdr = (const ip_hdr *)(buf + ETH_HDR_SIZE);
+    if (iphdr->ihl < 5)
+    {
+      continue;
+    }
+
+    ip_hdr_len = iphdr->ihl * 4;
+
+    if (rec < ETH_HDR_SIZE + ip_hdr_len + ICMP_HDR_SIZE)
+    {
+      continue;
+    }
+
+    if (iphdr->protocol != IP_PROTO_ICMP)
+    {
+      continue;
+    }
+
+    if (read_be32(iphdr->src) != dst)
+    {
+      continue;
+    }
+
+    icmphdr = (const icmp_hdr *)(buf + ETH_HDR_SIZE + ip_hdr_len);
+    if (icmphdr->type != ICMP_ECHO_REPLY)
+    {
+      continue;
+    }
+
+    if (read_be16(icmphdr->id) != (u16)getpid())
+    {
+      continue;
+    }
+
+    break;
   }
 
   close(skt);
-
-  if (rec < ETH_HDR_SIZE + IP_HDR_SIZE)
-  {
-    fprintf(stderr, "reply too short for ETH+IP header\n");
-    return 1;
-  }
-
-  hdr = (ip_hdr *)(buf + ETH_HDR_SIZE);
-
-  if (hdr->ihl < 5)
-  {
-    fprintf(stderr, "invalid IP header length: %u\n", hdr->ihl);
-    return 1;
-  }
-
-  ip_hdr_len = hdr->ihl * 4;
-
-  if (rec < ETH_HDR_SIZE + ip_hdr_len + ICMP_HDR_SIZE)
-  {
-    fprintf(stderr, "reply too short for ICMP header\n");
-    return 1;
-  }
 
   printf("----- RECEIVED -----\n");
   if (print_eth_packet(buf, rec) != OK)

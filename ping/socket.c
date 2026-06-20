@@ -144,3 +144,18 @@ int receive_packet(int skt, u8 *buf, u32 buff_len, u32 *rec)
 
   return OK;
 }
+
+int set_recv_timeout(int skt, u32 seconds)
+{
+  struct timeval tv;
+
+  tv.tv_sec  = (time_t)seconds;
+  tv.tv_usec = 0;
+
+  if (setsockopt(skt, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
+  {
+    return ERR;
+  }
+
+  return OK;
+}

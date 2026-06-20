@@ -2,7 +2,8 @@
 #define SOCKET_H
 
 #include <string.h>      /* memset */
-#include <sys/socket.h>  /* socket, sendto, recvfrom, struct sockaddr, ssize_t, AF_PACKET, SOCK_RAW */
+#include <sys/socket.h>  /* socket, sendto, recvfrom, setsockopt, struct sockaddr, ssize_t, AF_PACKET, SOCK_RAW, SO_RCVTIMEO */
+#include <sys/time.h>    /* struct timeval */
 #include <sys/ioctl.h>   /* ioctl, SIOCGIFADDR, SIOCGIFHWADDR */
 #include <netinet/in.h>  /* struct sockaddr_in */
 #include <unistd.h>      /* close */
@@ -40,5 +41,7 @@ int get_iface_index(const char *iface, int *ifindex);
 int get_iface_ip(int skt, const char *iface, u32 *ip);
 
 int get_iface_mac(int skt, const char *iface, u8 *mac);
+
+int set_recv_timeout(int skt, u32 seconds);
 
 #endif
