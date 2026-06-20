@@ -2,6 +2,7 @@
 #include "ip.h"
 #include "eth.h"
 #include "socket.h"
+#include <time.h> /* clock_gettime, struct timespec, CLOCK_MONOTONIC */
 
 int main(int argc, char **argv)
 {
@@ -31,6 +32,9 @@ int main(int argc, char **argv)
   const eth_hdr *ethhdr = NULL;
   const icmp_hdr *icmphdr = NULL;
   u32 ip_hdr_len = 0;
+  struct timespec t_send = {0};
+  struct timespec t_recv = {0};
+  long rtt_ms = 0;
 
   if (argc != 3)
   {
@@ -131,6 +135,8 @@ int main(int argc, char **argv)
     return 1;
   }
 
+  clock_gettime(CLOCK_MONOTONIC, &t_send);
+
   if (send_packet(skt, &addr, eth_pkt, eth_len) != OK)
   {
     perror("send_packet");
@@ -198,8 +204,11 @@ int main(int argc, char **argv)
       continue;
     }
 
+    clock_gettime(CLOCK_MONOTONIC, &t_recv);
     break;
   }
+
+  rtt_ms = (t_recv.tv_sec - t_send.tv_sec) * 1000 + (t_recv.tv_nsec - t_send.tv_nsec) / 1000000;
 
   close(skt);
 
@@ -219,6 +228,8 @@ int main(int argc, char **argv)
     fprintf(stderr, "error printing ICMP packet\n");
     return 1;
   }
+
+  printf("\nrtt: %ld ms\n", rtt_ms);
 
   return 0;
 }
