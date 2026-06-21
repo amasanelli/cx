@@ -1,20 +1,22 @@
-#include "ping.h"
-#include "config.h" /* PING_COUNT */
+#include "functions.h"
 
 int main(int argc, char **argv)
 {
   u8 pld[] = "hello";
-  u32 src = 0;
+  u8 src_ip[IP_ADDR_LEN] = {0};
+  u8 src_ip_msk[IP_ADDR_LEN] = {0};
+  u8 gw_ip[IP_ADDR_LEN] = {0};
+  u8 arp_ip_dst[IP_ADDR_LEN] = {0};
   u8 src_mac[ETH_ADDR_LEN] = {0};
-  /* broadcast: we skip ARP, so we don't know the target's MAC; all hosts on the
-   * segment receive the frame and the target responds based on the IP address */
-  u8 dst_mac[ETH_ADDR_LEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+  u8 dst_mac[ETH_ADDR_LEN] = {0}; /* filled by arp_resolve */
 
-  u32 dst = 0;
-  int ifindex = 0;
+  u8 dst_ip[IP_ADDR_LEN] = {0};
+  int if_i = 0;
   skt_addr addr = {0};
   int skt = -1;
 
+  u32 i = 0;
+  int same = 1;
   u16 seq = 0;
   u32 sent = 0;
   u32 received = 0;
@@ -29,7 +31,7 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  if (parse_ip((const u8 *)argv[1], &dst) != OK)
+  if (parse_ip((const u8 *)argv[1], dst_ip) != OK)
   {
     fprintf(stderr, "invalid IP: %s\n", argv[1]);
     return 1;
@@ -41,21 +43,14 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  if (set_recv_timeout(skt, 2) != OK)
-  {
-    perror("set_recv_timeout");
-    close(skt);
-    return 1;
-  }
-
-  if (get_iface_index(skt, argv[2], &ifindex) != OK)
+  if (get_iface_index(skt, argv[2], &if_i) != OK)
   {
     fprintf(stderr, "invalid interface: %s\n", argv[2]);
     close(skt);
     return 1;
   }
 
-  if (get_iface_ip(skt, argv[2], &src) != OK)
+  if (get_iface_ip(skt, argv[2], src_ip) != OK)
   {
     fprintf(stderr, "failed to get IP for interface: %s\n", argv[2]);
     close(skt);
@@ -69,9 +64,61 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  if (build_socket_address(ifindex, &addr) != OK)
+  if (get_iface_netmask(skt, argv[2], src_ip_msk) != OK)
+  {
+    fprintf(stderr, "failed to get netmask for interface: %s\n", argv[2]);
+    close(skt);
+    return 1;
+  }
+
+  if (build_socket_address(if_i, &addr) != OK)
   {
     perror("build_socket_address");
+    close(skt);
+    return 1;
+  }
+
+  /* if dst_ip is on the same subnet, ARP for it directly; otherwise ARP for the gateway */
+  for (i = 0; i < IP_ADDR_LEN; i++)
+  {
+    if ((dst_ip[i] & src_ip_msk[i]) != (src_ip[i] & src_ip_msk[i]))
+    {
+      same = 0;
+      break;
+    }
+  }
+  if (same)
+  {
+    memcpy(arp_ip_dst, dst_ip, IP_ADDR_LEN);
+  }
+  else
+  {
+    if (get_iface_gateway(argv[2], gw_ip) != OK)
+    {
+      fprintf(stderr, "no default gateway found for interface: %s\n", argv[2]);
+      close(skt);
+      return 1;
+    }
+    memcpy(arp_ip_dst, gw_ip, IP_ADDR_LEN);
+  }
+
+  if (set_recv_timeout(skt, ARP_TIMEOUT_SEC) != OK)
+  {
+    perror("set_recv_timeout");
+    close(skt);
+    return 1;
+  }
+
+  if (arp_resolve(skt, &addr, src_ip, src_mac, arp_ip_dst, dst_mac) != OK)
+  {
+    fprintf(stderr, "ARP resolution timed out\n");
+    close(skt);
+    return 1;
+  }
+
+  if (set_recv_timeout(skt, PING_TIMEOUT_SEC) != OK)
+  {
+    perror("set_recv_timeout");
     close(skt);
     return 1;
   }
@@ -80,7 +127,7 @@ int main(int argc, char **argv)
   {
     sent++;
 
-    if (ping(skt, &addr, src, dst, src_mac, dst_mac, (u16)getpid(), seq, pld, sizeof(pld) - 1, &rtt_ms) != OK)
+    if (ping(skt, &addr, src_ip, dst_ip, src_mac, dst_mac, (u16)getpid(), seq, pld, sizeof(pld) - 1, &rtt_ms) != OK)
     {
       fprintf(stderr, "request timeout for seq=%d\n", seq);
       continue;

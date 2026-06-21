@@ -6,10 +6,10 @@ value, not on its memory layout, so MSB is always extracted/inserted first
 regardless of host byte order.
 */
 
-void write_be16(u8 *dst, u16 value)
+void write_be16(u16 value, u8 *out)
 {
-  dst[0] = (value >> 8) & 0xFF;
-  dst[1] = value & 0xFF;
+  out[0] = (value >> 8) & 0xFF;
+  out[1] = value & 0xFF;
 }
 
 u16 read_be16(const u8 *src)
@@ -17,12 +17,12 @@ u16 read_be16(const u8 *src)
   return ((u16)src[0] << 8) | src[1];
 }
 
-void write_be32(u8 *dst, u32 value)
+void write_be32(u32 value, u8 *out)
 {
-  dst[0] = (value >> 24) & 0xFF;
-  dst[1] = (value >> 16) & 0xFF;
-  dst[2] = (value >> 8) & 0xFF;
-  dst[3] = value & 0xFF;
+  out[0] = (value >> 24) & 0xFF;
+  out[1] = (value >> 16) & 0xFF;
+  out[2] = (value >> 8) & 0xFF;
+  out[3] = value & 0xFF;
 }
 
 u32 read_be32(const u8 *src)

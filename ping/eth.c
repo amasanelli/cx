@@ -1,11 +1,11 @@
 #include "eth.h"
 
-int eth_build_packet(const u8 *dst, const u8 *src, u16 ethertype, const u8 *pld, u32 pld_len, u8 **pkt, u32 *pkt_len)
+int eth_build_packet(const u8 *dst_mac, const u8 *src_mac, u16 ethertype, const u8 *pld, u32 pld_len, u8 **out_pkt, u32 *out_pkt_len)
 {
   u8 *buf = NULL;
   eth_hdr *hdr = NULL;
 
-  if (!pkt || !pkt_len || !dst || !src)
+  if (!out_pkt || !out_pkt_len || !dst_mac || !src_mac)
   {
     return ERR;
   }
@@ -20,35 +20,40 @@ int eth_build_packet(const u8 *dst, const u8 *src, u16 ethertype, const u8 *pld,
     return ERR;
   }
 
-  *pkt = NULL;
-  *pkt_len = ETH_HDR_SIZE + pld_len;
+  *out_pkt = NULL;
+  *out_pkt_len = (u32)sizeof(eth_hdr) + pld_len;
 
-  buf = (u8 *)malloc(*pkt_len);
+  buf = (u8 *)malloc(*out_pkt_len);
   if (!buf)
   {
     return ERR;
   }
-  memset(buf, 0, *pkt_len);
+  memset(buf, 0, *out_pkt_len);
 
   hdr = (eth_hdr *)buf;
 
-  memcpy(hdr->dst, dst, ETH_ADDR_LEN);   /* destination MAC (caller-provided) */
-  memcpy(hdr->src, src, ETH_ADDR_LEN);   /* source MAC (our NIC's MAC) */
-  write_be16(hdr->ethertype, ethertype); /* payload protocol type (passed in) */
+  memcpy(hdr->dst, dst_mac, ETH_ADDR_LEN);    /* destination MAC (caller-provided) */
+  memcpy(hdr->src, src_mac, ETH_ADDR_LEN);    /* source MAC (our NIC's MAC) */
+  write_be16(ethertype, hdr->ethertype);  /* payload protocol type (passed in) */
 
   if (pld_len > 0)
   {
-    memcpy(buf + ETH_HDR_SIZE, pld, pld_len);
+    memcpy(buf + sizeof(eth_hdr), pld, pld_len);
   }
 
-  *pkt = buf;
+  *out_pkt = buf;
 
   return OK;
 }
 
-int build_eth_ip_packet(const u8 *dst, const u8 *src, const u8 *pld, u32 pld_len, u8 **pkt, u32 *pkt_len)
+int build_eth_ip_packet(const u8 *dst_mac, const u8 *src_mac, const u8 *pld, u32 pld_len, u8 **out_pkt, u32 *out_pkt_len)
 {
-  return eth_build_packet(dst, src, ETHER_TYPE_IP, pld, pld_len, pkt, pkt_len);
+  return eth_build_packet(dst_mac, src_mac, ETHER_TYPE_IP, pld, pld_len, out_pkt, out_pkt_len);
+}
+
+int build_eth_arp_packet(const u8 *dst_mac, const u8 *src_mac, const u8 *pld, u32 pld_len, u8 **out_pkt, u32 *out_pkt_len)
+{
+  return eth_build_packet(dst_mac, src_mac, ETHER_TYPE_ARP, pld, pld_len, out_pkt, out_pkt_len);
 }
 
 int print_eth_packet(const u8 *pkt, u32 pkt_len)
@@ -56,7 +61,7 @@ int print_eth_packet(const u8 *pkt, u32 pkt_len)
   const eth_hdr *hdr = NULL;
   u32 i = 0;
 
-  if (!pkt || pkt_len < ETH_HDR_SIZE)
+  if (!pkt || pkt_len < (u32)sizeof(eth_hdr))
   {
     return ERR;
   }
@@ -70,7 +75,7 @@ int print_eth_packet(const u8 *pkt, u32 pkt_len)
   printf("-- ETH HEADER --\n");
 
   printf("-- ETH PAYLOAD --\n");
-  for (i = ETH_HDR_SIZE; i < pkt_len; i++)
+  for (i = (u32)sizeof(eth_hdr); i < pkt_len; i++)
   {
     printf("%02x ", pkt[i]);
   }

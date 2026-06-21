@@ -5,12 +5,12 @@
 #include <stdio.h>  /* printf */
 #include <string.h> /* memset, memcpy */
 /* __BYTE_ORDER__ and __ORDER_BIG_ENDIAN__ are GCC built-ins, no include needed */
-#include "types.h" /* u8, u16, u32 */
-#include "net.h"   /* write_be16, write_be32, read_be32, checksum */
+#include "types.h"  /* u8, u16, u32 */
+#include "net.h"    /* write_be16, write_be32, read_be32, checksum */
+#include "config.h" /* IP_DEFAULT_TTL */
 
-#define IP_DEFAULT_TTL 64
-#define IP_HDR_SIZE 20
-#define IP_MAX_PLD_SIZE (65535 - IP_HDR_SIZE)
+#define IP_ADDR_LEN 4
+#define IP_MAX_PLD_SIZE (65535 - (u32)sizeof(ip_hdr))
 #define IP_PROTO_ICMP 1
 #define IP_STR_MAX_LEN 16 /* "255.255.255.255\0" */
 
@@ -46,13 +46,13 @@ typedef struct __attribute__((packed))
   u8 dst[4];      /* destination IP address, network byte order */
 } ip_hdr;
 
-int ip_build_packet(u8 protocol, u32 src, u32 dst, const u8 *pld, u32 pld_len, u8 **pkt, u32 *pkt_len);
+int ip_build_packet(u8 protocol, const u8 *src_ip, const u8 *dst_ip, const u8 *pld, u32 pld_len, u8 **out_pkt, u32 *out_pkt_len);
 
-int build_ip_icmp_packet(u32 src, u32 dst, const u8 *pld, u32 pld_len, u8 **pkt, u32 *pkt_len);
+int build_ip_icmp_packet(const u8 *src_ip, const u8 *dst_ip, const u8 *pld, u32 pld_len, u8 **out_pkt, u32 *out_pkt_len);
 
-int parse_ip(const u8 *ip, u32 *out);
+int parse_ip(const u8 *ip_str, u8 *out_ip);
 
-int ip_string(u32 ip, u8 *out, u32 out_len);
+int ip_string(const u8 *ip_addr, u8 *out_str, u32 out_str_len);
 
 int print_ip_packet(const u8 *pkt, u32 pkt_len);
 
