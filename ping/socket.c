@@ -103,7 +103,6 @@ int set_recv_timeout(int skt, u32 seconds)
 /* single pass through /proc/net/route: resolves iface name, netmask, and gateway for dst_ip */
 static int read_route_info(const u8 *dst_ip, u8 *out_name, u8 *out_netmask, u8 *out_gateway)
 {
-  struct { char name[IFNAMSIZ]; u32 gw; } gw_table[8];
   FILE *f = NULL;
   char line[256] = {0};
   char r_iface[IFNAMSIZ] = {0};
@@ -115,12 +114,6 @@ static int read_route_info(const u8 *dst_ip, u8 *out_name, u8 *out_netmask, u8 *
   u32 dst_le = 0;
   u32 best_mask = 0;
   bool found = FALSE;
-  int gw_count = 0;
-  int i = 0;
-
-  memset(out_name, 0, IFNAMSIZ);
-  memset(out_netmask, 0, IP_ADDR_LEN);
-  memset(out_gateway, 0, IP_ADDR_LEN);
 
   dst_le = (u32)dst_ip[0] | ((u32)dst_ip[1] << 8) | ((u32)dst_ip[2] << 16) | ((u32)dst_ip[3] << 24);
 
@@ -152,45 +145,31 @@ static int read_route_info(const u8 *dst_ip, u8 *out_name, u8 *out_netmask, u8 *
     if ((dst_le & mask) == dest && (!found || mask > best_mask))
     {
       best_mask = mask;
+      memset(out_name, 0, IFNAMSIZ);
       memcpy(out_name, r_iface, IFNAMSIZ - 1);
       out_name[IFNAMSIZ - 1] = '\0';
       /* route table mask is LE u32; extract octets in order */
+      memset(out_netmask, 0, IP_ADDR_LEN);
       out_netmask[0] = (u8)(mask & 0xFF);
       out_netmask[1] = (u8)((mask >> 8) & 0xFF);
       out_netmask[2] = (u8)((mask >> 16) & 0xFF);
       out_netmask[3] = (u8)((mask >> 24) & 0xFF);
+      /* gateway from this route: non-zero only when RTF_GATEWAY is set */
+      memset(out_gateway, 0, IP_ADDR_LEN);
+      if (flags & RTF_GATEWAY)
+      {
+        out_gateway[0] = (u8)(gw & 0xFF);
+        out_gateway[1] = (u8)((gw >> 8) & 0xFF);
+        out_gateway[2] = (u8)((gw >> 16) & 0xFF);
+        out_gateway[3] = (u8)((gw >> 24) & 0xFF);
+      }
       found = TRUE;
-    }
-
-    if (dest == 0 && (flags & RTF_GATEWAY) && gw_count < 8)
-    {
-      memcpy(gw_table[gw_count].name, r_iface, IFNAMSIZ - 1);
-      gw_table[gw_count].name[IFNAMSIZ - 1] = '\0';
-      gw_table[gw_count].gw = gw;
-      gw_count++;
     }
   }
 
   fclose(f);
 
-  if (!found)
-  {
-    return ERR;
-  }
-
-  for (i = 0; i < gw_count; i++)
-  {
-    if (strncmp(gw_table[i].name, (const char *)out_name, IFNAMSIZ - 1) == 0)
-    {
-      out_gateway[0] = (u8)(gw_table[i].gw & 0xFF);
-      out_gateway[1] = (u8)((gw_table[i].gw >> 8) & 0xFF);
-      out_gateway[2] = (u8)((gw_table[i].gw >> 16) & 0xFF);
-      out_gateway[3] = (u8)((gw_table[i].gw >> 24) & 0xFF);
-      break;
-    }
-  }
-
-  return OK;
+  return found ? OK : ERR;
 }
 
 int get_iface_info(int skt, const u8 *dst_ip, iface_info *out)

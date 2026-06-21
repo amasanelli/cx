@@ -10,8 +10,6 @@ int main(int argc, char **argv)
   skt_addr addr = {0};
   int skt = -1;
 
-  u32 i = 0;
-  bool same = TRUE;
   u16 seq = 0;
   u32 sent = 0;
   u32 received = 0;
@@ -53,27 +51,13 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  /* if dst_ip is on the same subnet, ARP for it directly; otherwise ARP for the gateway */
-  for (i = 0; i < IP_ADDR_LEN; i++)
-  {
-    if ((dst_ip[i] & iface.netmask[i]) != (iface.ip[i] & iface.netmask[i]))
-    {
-      same = FALSE;
-      break;
-    }
-  }
-  if (same)
+  /* gateway non-zero means routing table says forward via gateway; zero means direct delivery */
+  if (iface.gateway[0] == 0 && iface.gateway[1] == 0 && iface.gateway[2] == 0 && iface.gateway[3] == 0)
   {
     memcpy(arp_ip_dst, dst_ip, IP_ADDR_LEN);
   }
   else
   {
-    if (iface.gateway[0] == 0 && iface.gateway[1] == 0 && iface.gateway[2] == 0 && iface.gateway[3] == 0)
-    {
-      fprintf(stderr, "no default gateway found for interface: %s\n", iface.name);
-      close(skt);
-      return 1;
-    }
     memcpy(arp_ip_dst, iface.gateway, IP_ADDR_LEN);
   }
 
