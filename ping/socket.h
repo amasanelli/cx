@@ -39,16 +39,18 @@ int build_socket_address(u32 if_i, skt_addr *out_addr);
 
 int receive_packet(int skt, u8 *buf, u32 buff_len, u32 *n_recv);
 
-int get_iface_index(int skt, const char *iface, u32 *out_if_i);
+int get_iface_index(int skt, const u8 *iface, u32 *out_if_i);
 
-int get_iface_ip(int skt, const char *iface, u8 *out_ip);
+int get_iface_ip(int skt, const u8 *iface, u8 *out_ip);
 
-int get_iface_mac(int skt, const char *iface, u8 *out_mac);
+int get_iface_mac(int skt, const u8 *iface, u8 *out_mac);
 
 int set_recv_timeout(int skt, u32 seconds);
 
-int get_iface_netmask(int skt, const char *iface, u8 *out_msk);
+int get_iface_netmask(int skt, const u8 *iface, u8 *out_msk);
 
-int get_iface_gateway(const char *iface, u8 *out_gw);
+int get_iface_gateway(const u8 *iface, u8 *out_gw);
+
+int get_iface_for_ip(const u8 *dst_ip, u8 *out_iface);
 
 #endif

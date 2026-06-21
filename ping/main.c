@@ -14,6 +14,7 @@ int main(int argc, char **argv)
   u32 if_i = 0;
   skt_addr addr = {0};
   int skt = -1;
+  u8 iface[IFNAMSIZ] = {0};
 
   u32 i = 0;
   bool same = TRUE;
@@ -25,9 +26,9 @@ int main(int argc, char **argv)
   u64 rtt_max = 0;
   u64 rtt_sum = 0;
 
-  if (argc != 3)
+  if (argc < 2)
   {
-    printf("usage:\n./ping <IP> <iface>\n");
+    printf("usage:\n./ping <IP> [iface]\n");
     return 1;
   }
 
@@ -37,36 +38,50 @@ int main(int argc, char **argv)
     return 1;
   }
 
+  if (argc >= 3)
+  {
+    strncpy((char *)iface, argv[2], IFNAMSIZ - 1);
+  }
+  else
+  {
+    if (get_iface_for_ip(dst_ip, iface) != OK)
+    {
+      fprintf(stderr, "no route to host: %s\n", argv[1]);
+      return 1;
+    }
+    printf("using interface: %s\n", iface);
+  }
+
   if (open_raw_eth_socket(&skt) != OK)
   {
     perror("open_raw_eth_socket");
     return 1;
   }
 
-  if (get_iface_index(skt, argv[2], &if_i) != OK)
+  if (get_iface_index(skt, iface, &if_i) != OK)
   {
-    fprintf(stderr, "invalid interface: %s\n", argv[2]);
+    fprintf(stderr, "invalid interface: %s\n", iface);
     close(skt);
     return 1;
   }
 
-  if (get_iface_ip(skt, argv[2], src_ip) != OK)
+  if (get_iface_ip(skt, iface, src_ip) != OK)
   {
-    fprintf(stderr, "failed to get IP for interface: %s\n", argv[2]);
+    fprintf(stderr, "failed to get IP for interface: %s\n", iface);
     close(skt);
     return 1;
   }
 
-  if (get_iface_mac(skt, argv[2], src_mac) != OK)
+  if (get_iface_mac(skt, iface, src_mac) != OK)
   {
-    fprintf(stderr, "failed to get MAC for interface: %s\n", argv[2]);
+    fprintf(stderr, "failed to get MAC for interface: %s\n", iface);
     close(skt);
     return 1;
   }
 
-  if (get_iface_netmask(skt, argv[2], src_ip_msk) != OK)
+  if (get_iface_netmask(skt, iface, src_ip_msk) != OK)
   {
-    fprintf(stderr, "failed to get netmask for interface: %s\n", argv[2]);
+    fprintf(stderr, "failed to get netmask for interface: %s\n", iface);
     close(skt);
     return 1;
   }
@@ -93,9 +108,9 @@ int main(int argc, char **argv)
   }
   else
   {
-    if (get_iface_gateway(argv[2], gw_ip) != OK)
+    if (get_iface_gateway(iface, gw_ip) != OK)
     {
-      fprintf(stderr, "no default gateway found for interface: %s\n", argv[2]);
+      fprintf(stderr, "no default gateway found for interface: %s\n", iface);
       close(skt);
       return 1;
     }

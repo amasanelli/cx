@@ -121,7 +121,7 @@ int ip_string(const u8 *ip_addr, u8 *out_str, u32 out_str_len)
   u32 i = 0;
   u32 len = 0;
   u8 byte = 0;
-  u8 tmp[3];
+  u8 tmp[3] = {0};
   u32 digits = 0;
   int j = 0;
 

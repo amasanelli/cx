@@ -9,7 +9,7 @@ int ping(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *dst_ip, cons
   u8 *eth_pkt = NULL;
   u32 eth_len = 0;
 
-  u8 buf[sizeof(eth_hdr) + ETH_MAX_PLD_SIZE];
+  u8 buf[sizeof(eth_hdr) + ETH_MAX_PLD_SIZE] = {0};
   u32 n_recv = 0;
   const eth_hdr *ethhdr = NULL;
   const ip_hdr *iphdr = NULL;
@@ -142,7 +142,7 @@ int arp_resolve(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *src_m
   u32 eth_len = 0;
   u8 broadcast[ETH_ADDR_LEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-  u8 buf[sizeof(eth_hdr) + ETH_MAX_PLD_SIZE];
+  u8 buf[sizeof(eth_hdr) + ETH_MAX_PLD_SIZE] = {0};
   u32 n_recv = 0;
   const eth_hdr *ethhdr = NULL;
   const arp_hdr *arphdr = NULL;
