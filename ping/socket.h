@@ -24,7 +24,7 @@ typedef struct __attribute__((packed))
 {
   u16 family;   /* address family (AF_*) */
   u16 protocol; /* ethertype, network byte order */
-  int if_i;     /* interface index */
+  u32 if_i;     /* interface index */
   u16 hatype;   /* hardware address type (ARPHRD_*) */
   u8 pkttype;   /* packet type (PACKET_HOST, PACKET_OUTGOING, ...) */
   u8 halen;     /* hardware address length */
@@ -35,11 +35,11 @@ int open_raw_eth_socket(int *out_skt);
 
 int send_packet(int skt, const skt_addr *addr, const u8 *pkt, u32 pkt_len);
 
-int build_socket_address(int if_i, skt_addr *out_addr);
+int build_socket_address(u32 if_i, skt_addr *out_addr);
 
 int receive_packet(int skt, u8 *buf, u32 buff_len, u32 *n_recv);
 
-int get_iface_index(int skt, const char *iface, int *out_if_i);
+int get_iface_index(int skt, const char *iface, u32 *out_if_i);
 
 int get_iface_ip(int skt, const char *iface, u8 *out_ip);
 

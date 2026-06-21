@@ -1,6 +1,6 @@
 #include "functions.h"
 
-int ping(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *dst_ip, const u8 *src_mac, const u8 *dst_mac, u16 id, u16 seq, const u8 *pld, u32 pld_len, long *out_rtt_ms)
+int ping(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *dst_ip, const u8 *src_mac, const u8 *dst_mac, u16 id, u16 seq, const u8 *pld, u32 pld_len, u64 *out_rtt_ms)
 {
   u8 *icmp_pkt = NULL;
   u32 icmp_len = 0;
@@ -123,13 +123,13 @@ int ping(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *dst_ip, cons
     break;
   }
 
-  *out_rtt_ms = (t_recv.tv_sec - t_send.tv_sec) * 1000 + (t_recv.tv_nsec - t_send.tv_nsec) / 1000000;
+  *out_rtt_ms = (u64)((t_recv.tv_sec - t_send.tv_sec) * 1000 + (t_recv.tv_nsec - t_send.tv_nsec) / 1000000);
 
   printf("----- RECEIVED (seq=%d) -----\n", seq);
   print_eth_packet(buf, n_recv);
   print_ip_packet(buf + sizeof(eth_hdr), n_recv - (u32)sizeof(eth_hdr));
   print_icmp_packet(buf + sizeof(eth_hdr) + ip_hdr_len, n_recv - (u32)sizeof(eth_hdr) - ip_hdr_len);
-  printf("rtt: %ld ms\n\n", *out_rtt_ms);
+  printf("rtt: %lu ms\n\n", *out_rtt_ms);
 
   return OK;
 }

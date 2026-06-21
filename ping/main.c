@@ -11,19 +11,19 @@ int main(int argc, char **argv)
   u8 dst_mac[ETH_ADDR_LEN] = {0}; /* filled by arp_resolve */
 
   u8 dst_ip[IP_ADDR_LEN] = {0};
-  int if_i = 0;
+  u32 if_i = 0;
   skt_addr addr = {0};
   int skt = -1;
 
   u32 i = 0;
-  int same = 1;
+  bool same = TRUE;
   u16 seq = 0;
   u32 sent = 0;
   u32 received = 0;
-  long rtt_ms = 0;
-  long rtt_min = 0;
-  long rtt_max = 0;
-  long rtt_sum = 0;
+  u64 rtt_ms = 0;
+  u64 rtt_min = 0;
+  u64 rtt_max = 0;
+  u64 rtt_sum = 0;
 
   if (argc != 3)
   {
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
   {
     if ((dst_ip[i] & src_ip_msk[i]) != (src_ip[i] & src_ip_msk[i]))
     {
-      same = 0;
+      same = FALSE;
       break;
     }
   }
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 
     if (ping(skt, &addr, src_ip, dst_ip, src_mac, dst_mac, (u16)getpid(), seq, pld, sizeof(pld) - 1, &rtt_ms) != OK)
     {
-      fprintf(stderr, "request timeout for seq=%d\n", seq);
+      fprintf(stderr, "request timeout for seq=%u\n", seq);
       continue;
     }
 
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
   printf("%u transmitted, %u received, %u%% loss\n", sent, received, sent > 0 ? (sent - received) * 100 / sent : 0);
   if (received > 0)
   {
-    printf("rtt min/avg/max = %ld/%ld/%ld ms\n", rtt_min, rtt_sum / (long)received, rtt_max);
+    printf("rtt min/avg/max = %lu/%lu/%lu ms\n", rtt_min, rtt_sum / (u64)received, rtt_max);
   }
   printf("----- PING STATISTICS -----\n");
 

@@ -23,7 +23,7 @@ int open_raw_eth_socket(int *out_skt)
   return OK;
 }
 
-int build_socket_address(int if_i, skt_addr *out_addr)
+int build_socket_address(u32 if_i, skt_addr *out_addr)
 {
   if (!out_addr)
   {
@@ -62,7 +62,7 @@ int send_packet(int skt, const skt_addr *addr, const u8 *pkt, u32 pkt_len)
   return OK;
 }
 
-int get_iface_index(int skt, const char *iface, int *out_if_i)
+int get_iface_index(int skt, const char *iface, u32 *out_if_i)
 {
   struct ifreq ifr;
 
@@ -79,7 +79,7 @@ int get_iface_index(int skt, const char *iface, int *out_if_i)
     return ERR;
   }
 
-  *out_if_i = ifr.ifr_ifindex;
+  *out_if_i = (u32)ifr.ifr_ifindex;
 
   return OK;
 }
