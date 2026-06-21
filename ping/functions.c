@@ -152,6 +152,8 @@ int arp_resolve(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *src_m
     return ERR;
   }
 
+  memset(out_dst_mac, 0, ETH_ADDR_LEN);
+
   if (arp_build_packet(src_ip, src_mac, dst_ip, &arp_pkt, &arp_len) != OK)
   {
     return ERR;

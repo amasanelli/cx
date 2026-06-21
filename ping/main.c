@@ -3,18 +3,12 @@
 int main(int argc, char **argv)
 {
   u8 pld[] = "hello";
-  u8 src_ip[IP_ADDR_LEN] = {0};
-  u8 src_ip_msk[IP_ADDR_LEN] = {0};
-  u8 gw_ip[IP_ADDR_LEN] = {0};
-  u8 arp_ip_dst[IP_ADDR_LEN] = {0};
-  u8 src_mac[ETH_ADDR_LEN] = {0};
-  u8 dst_mac[ETH_ADDR_LEN] = {0}; /* filled by arp_resolve */
-
   u8 dst_ip[IP_ADDR_LEN] = {0};
-  u32 if_i = 0;
+  u8 arp_ip_dst[IP_ADDR_LEN] = {0};
+  u8 dst_mac[ETH_ADDR_LEN] = {0};
+  iface_info iface = {0};
   skt_addr addr = {0};
   int skt = -1;
-  u8 iface[IFNAMSIZ] = {0};
 
   u32 i = 0;
   bool same = TRUE;
@@ -38,55 +32,21 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  if (argc >= 3)
-  {
-    strncpy((char *)iface, argv[2], IFNAMSIZ - 1);
-  }
-  else
-  {
-    if (get_iface_for_ip(dst_ip, iface) != OK)
-    {
-      fprintf(stderr, "no route to host: %s\n", argv[1]);
-      return 1;
-    }
-    printf("using interface: %s\n", iface);
-  }
-
   if (open_raw_eth_socket(&skt) != OK)
   {
     perror("open_raw_eth_socket");
     return 1;
   }
 
-  if (get_iface_index(skt, iface, &if_i) != OK)
+  if (get_iface_info(skt, dst_ip, &iface) != OK)
   {
-    fprintf(stderr, "invalid interface: %s\n", iface);
+    fprintf(stderr, "no route to host: %s\n", argv[1]);
     close(skt);
     return 1;
   }
+  printf("using interface: %s\n\n", iface.name);
 
-  if (get_iface_ip(skt, iface, src_ip) != OK)
-  {
-    fprintf(stderr, "failed to get IP for interface: %s\n", iface);
-    close(skt);
-    return 1;
-  }
-
-  if (get_iface_mac(skt, iface, src_mac) != OK)
-  {
-    fprintf(stderr, "failed to get MAC for interface: %s\n", iface);
-    close(skt);
-    return 1;
-  }
-
-  if (get_iface_netmask(skt, iface, src_ip_msk) != OK)
-  {
-    fprintf(stderr, "failed to get netmask for interface: %s\n", iface);
-    close(skt);
-    return 1;
-  }
-
-  if (build_socket_address(if_i, &addr) != OK)
+  if (build_socket_address(iface.index, &addr) != OK)
   {
     perror("build_socket_address");
     close(skt);
@@ -96,7 +56,7 @@ int main(int argc, char **argv)
   /* if dst_ip is on the same subnet, ARP for it directly; otherwise ARP for the gateway */
   for (i = 0; i < IP_ADDR_LEN; i++)
   {
-    if ((dst_ip[i] & src_ip_msk[i]) != (src_ip[i] & src_ip_msk[i]))
+    if ((dst_ip[i] & iface.netmask[i]) != (iface.ip[i] & iface.netmask[i]))
     {
       same = FALSE;
       break;
@@ -108,13 +68,13 @@ int main(int argc, char **argv)
   }
   else
   {
-    if (get_iface_gateway(iface, gw_ip) != OK)
+    if (iface.gateway[0] == 0 && iface.gateway[1] == 0 && iface.gateway[2] == 0 && iface.gateway[3] == 0)
     {
-      fprintf(stderr, "no default gateway found for interface: %s\n", iface);
+      fprintf(stderr, "no default gateway found for interface: %s\n", iface.name);
       close(skt);
       return 1;
     }
-    memcpy(arp_ip_dst, gw_ip, IP_ADDR_LEN);
+    memcpy(arp_ip_dst, iface.gateway, IP_ADDR_LEN);
   }
 
   if (set_recv_timeout(skt, ARP_TIMEOUT_SEC) != OK)
@@ -124,7 +84,7 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  if (arp_resolve(skt, &addr, src_ip, src_mac, arp_ip_dst, dst_mac) != OK)
+  if (arp_resolve(skt, &addr, iface.ip, iface.mac, arp_ip_dst, dst_mac) != OK)
   {
     fprintf(stderr, "ARP resolution timed out\n");
     close(skt);
@@ -142,7 +102,7 @@ int main(int argc, char **argv)
   {
     sent++;
 
-    if (ping(skt, &addr, src_ip, dst_ip, src_mac, dst_mac, (u16)getpid(), seq, pld, sizeof(pld) - 1, &rtt_ms) != OK)
+    if (ping(skt, &addr, iface.ip, dst_ip, iface.mac, dst_mac, (u16)getpid(), seq, pld, sizeof(pld) - 1, &rtt_ms) != OK)
     {
       fprintf(stderr, "request timeout for seq=%u\n", seq);
       continue;

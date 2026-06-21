@@ -5,13 +5,14 @@
 #include <string.h>     /* memset, memcpy, strncpy */
 #include <sys/socket.h> /* socket, sendto, recvfrom, setsockopt, struct sockaddr, ssize_t, AF_PACKET, SOCK_RAW, SO_RCVTIMEO */
 #include <sys/time.h>   /* struct timeval */
-#include <sys/ioctl.h>  /* ioctl, SIOCGIFINDEX, SIOCGIFADDR, SIOCGIFHWADDR, SIOCGIFNETMASK */
+#include <sys/ioctl.h>  /* ioctl, SIOCGIFINDEX, SIOCGIFADDR, SIOCGIFHWADDR */
 #include <netinet/in.h> /* struct sockaddr_in */
 #include <unistd.h>     /* close */
 #include <net/if.h>     /* struct ifreq, IFNAMSIZ */
 #include "types.h"      /* u8, u16, u32 */
 #include "net.h"        /* write_be16, read_be32 */
 #include "eth.h"        /* ETH_ADDR_LEN */
+#include "ip.h"         /* IP_ADDR_LEN */
 
 #define ETH_P_ALL 0x0003   /* capture all Ethernet frame types */
 #define RTF_UP 0x0001      /* route is up */
@@ -39,18 +40,18 @@ int build_socket_address(u32 if_i, skt_addr *out_addr);
 
 int receive_packet(int skt, u8 *buf, u32 buff_len, u32 *n_recv);
 
-int get_iface_index(int skt, const u8 *iface, u32 *out_if_i);
-
-int get_iface_ip(int skt, const u8 *iface, u8 *out_ip);
-
-int get_iface_mac(int skt, const u8 *iface, u8 *out_mac);
-
 int set_recv_timeout(int skt, u32 seconds);
 
-int get_iface_netmask(int skt, const u8 *iface, u8 *out_msk);
+typedef struct
+{
+  u8  name[IFNAMSIZ];
+  u32 index;
+  u8  ip[IP_ADDR_LEN];
+  u8  mac[ETH_ADDR_LEN];
+  u8  netmask[IP_ADDR_LEN];
+  u8  gateway[IP_ADDR_LEN];
+} iface_info;
 
-int get_iface_gateway(const u8 *iface, u8 *out_gw);
-
-int get_iface_for_ip(const u8 *dst_ip, u8 *out_iface);
+int get_iface_info(int skt, const u8 *dst_ip, iface_info *out);
 
 #endif
