@@ -30,12 +30,17 @@ ping_test() {
     ip netns exec $NS1 ./bin/ping $IP2
 }
 
+pong_server() {
+    ip netns exec $NS2 ./bin/pong
+}
+
 case "$1" in
     setup) setup ;;
     clean) clean ;;
     ping)  ping_test ;;
+    pong)  pong_server ;;
     *)
-        echo "Usage: $0 {setup|clean|ping}"
+        echo "Usage: $0 {setup|clean|ping|pong}"
         exit 1
         ;;
 esac

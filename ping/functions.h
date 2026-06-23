@@ -15,4 +15,7 @@ int ping(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *dst_ip, cons
 /* send ARP request and wait for reply; writes resolved MAC into out_dst_mac */
 int arp_resolve(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *src_mac, const u8 *dst_ip, u8 *out_dst_mac);
 
+/* receive one frame; if it's an ICMP echo request for any local IP, send a reply */
+int pong(int skt);
+
 #endif

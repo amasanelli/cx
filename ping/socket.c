@@ -62,7 +62,6 @@ int send_packet(int skt, const skt_addr *addr, const u8 *pkt, u32 pkt_len)
   return OK;
 }
 
-
 int receive_packet(int skt, u8 *buf, u32 buff_len, u32 *n_recv)
 {
   ssize_t n = -1;
@@ -98,7 +97,6 @@ int set_recv_timeout(int skt, u32 seconds)
 
   return OK;
 }
-
 
 /* single pass through /proc/net/route: resolves iface name, netmask, and gateway for dst_ip */
 static int read_route_info(const u8 *dst_ip, u8 *out_name, u8 *out_netmask, u8 *out_gateway)
@@ -141,8 +139,11 @@ static int read_route_info(const u8 *dst_ip, u8 *out_name, u8 *out_netmask, u8 *
     {
       continue;
     }
-
-    if ((dst_le & mask) == dest && (!found || mask > best_mask))
+    if ((dst_le & mask) != dest)
+    {
+      continue;
+    }
+    if (!found || mask > best_mask)
     {
       best_mask = mask;
       memset(out_name, 0, IFNAMSIZ);
