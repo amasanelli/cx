@@ -1,13 +1,12 @@
 #ifndef ARP_H
 #define ARP_H
 
-#include <stdlib.h> /* malloc, free */
+#include <stdlib.h> /* malloc */
 #include <stdio.h>  /* printf */
 #include <string.h> /* memset, memcpy */
 #include "types.h"  /* u8, u16, u32, OK, ERR */
-#include "net.h"    /* write_be16, write_be32, read_be16, read_be32 */
-#include "eth.h"    /* eth_build_packet, ETH_HDR_SIZE, ETH_MAX_PLD_SIZE, ETH_ADDR_LEN, ETHER_TYPE_ARP */
-#include "socket.h" /* send_packet, receive_packet, skt_addr */
+#include "net.h"    /* write_be16, read_be16 */
+#include "eth.h"    /* ETH_ADDR_LEN */
 
 #define ARP_HW_ETHER 0x0001  /* hardware type: Ethernet */
 #define ARP_PROTO_IP 0x0800  /* protocol type: IPv4 */

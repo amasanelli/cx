@@ -1,12 +1,12 @@
 #ifndef IP_H
 #define IP_H
 
-#include <stdlib.h> /* malloc, free */
+#include <stdlib.h> /* malloc */
 #include <stdio.h>  /* printf */
 #include <string.h> /* memset, memcpy */
 /* __BYTE_ORDER__ and __ORDER_BIG_ENDIAN__ are GCC built-ins, no include needed */
 #include "types.h"  /* u8, u16, u32 */
-#include "net.h"    /* write_be16, write_be32, read_be32, checksum */
+#include "net.h"    /* write_be16, read_be16, checksum */
 #include "config.h" /* IP_DEFAULT_TTL */
 
 #define IP_ADDR_LEN 4

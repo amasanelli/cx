@@ -2,17 +2,16 @@
 #define SOCKET_H
 
 #include <stdio.h>            /* fopen, fgets, sscanf, fclose */
-#include <string.h>           /* memset, memcpy, strncpy */
-#include <sys/socket.h>       /* socket, sendto, recvfrom, setsockopt, struct sockaddr, ssize_t, AF_PACKET, SOCK_RAW, SO_RCVTIMEO, SO_SNDTIMEO */
+#include <string.h>           /* memset, memcpy, strcmp */
+#include <sys/socket.h>       /* socket, sendto, recvfrom, setsockopt, connect, getsockname, struct sockaddr, ssize_t, AF_PACKET, SOCK_RAW, SO_RCVTIMEO, SO_SNDTIMEO */
 #include <sys/time.h>         /* struct timeval */
-#include <sys/ioctl.h>        /* ioctl, SIOCGIFINDEX, SIOCGIFHWADDR */
 #include <ifaddrs.h>          /* getifaddrs, freeifaddrs */
 #include <netpacket/packet.h> /* struct sockaddr_ll */
 #include <netinet/in.h>       /* struct sockaddr_in */
 #include <unistd.h>           /* close */
-#include <net/if.h>           /* struct ifreq, IFNAMSIZ */
+#include <net/if.h>           /* IFNAMSIZ */
 #include "types.h"            /* u8, u16, u32 */
-#include "net.h"              /* write_be16, read_be32 */
+#include "net.h"              /* write_be16 */
 #include "eth.h"              /* ETH_ADDR_LEN */
 #include "ip.h"               /* IP_ADDR_LEN */
 

@@ -24,6 +24,8 @@ int ping(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *dst_ip, cons
     return ERR;
   }
 
+  *out_rtt_ms = 0;
+
   if (build_ping_packet(id, seq, pld, pld_len, &icmp_pkt, &icmp_len) != OK)
   {
     return ERR;

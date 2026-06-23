@@ -71,6 +71,8 @@ int receive_packet(int skt, u8 *buf, u32 buff_len, u32 *n_recv)
     return ERR;
   }
 
+  *n_recv = 0;
+
   n = recvfrom(skt, buf, buff_len, 0, NULL, NULL);
 
   if (n < 0)
