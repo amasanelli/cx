@@ -11,7 +11,7 @@ int arp_build_packet(const u8 *src_ip, const u8 *src_mac, const u8 *dst_ip, cons
   }
 
   *out_pkt = NULL;
-  *out_pkt_len = (u32)sizeof(arp_hdr);
+  *out_pkt_len = 0;
 
   buf = (u8 *)malloc(sizeof(arp_hdr));
   if (!buf)
@@ -37,6 +37,7 @@ int arp_build_packet(const u8 *src_ip, const u8 *src_mac, const u8 *dst_ip, cons
   memcpy(hdr->target_ip, dst_ip, 4);
 
   *out_pkt = buf;
+  *out_pkt_len = (u32)sizeof(arp_hdr);
 
   return OK;
 }

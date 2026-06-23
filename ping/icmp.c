@@ -4,6 +4,7 @@ int icmp_build_packet(u8 type, u8 code, u16 id, u16 seq, const u8 *pld, u32 pld_
 {
   u8 *buf = NULL;
   icmp_hdr *hdr = NULL;
+  u32 pkt_size = 0;
 
   if (!out_pkt || !out_pkt_len)
   {
@@ -21,14 +22,15 @@ int icmp_build_packet(u8 type, u8 code, u16 id, u16 seq, const u8 *pld, u32 pld_
   }
 
   *out_pkt = NULL;
-  *out_pkt_len = (u32)sizeof(icmp_hdr) + pld_len;
+  *out_pkt_len = 0;
+  pkt_size = (u32)sizeof(icmp_hdr) + pld_len;
 
-  buf = (u8 *)malloc(*out_pkt_len);
+  buf = (u8 *)malloc(pkt_size);
   if (!buf)
   {
     return ERR;
   }
-  memset(buf, 0, *out_pkt_len);
+  memset(buf, 0, pkt_size);
 
   hdr = (icmp_hdr *)buf;
 
@@ -43,9 +45,10 @@ int icmp_build_packet(u8 type, u8 code, u16 id, u16 seq, const u8 *pld, u32 pld_
     memcpy(buf + sizeof(icmp_hdr), pld, pld_len);
   }
 
-  write_be16(checksum(buf, *out_pkt_len), hdr->checksum);
+  write_be16(checksum(buf, pkt_size), hdr->checksum);
 
   *out_pkt = buf;
+  *out_pkt_len = pkt_size;
 
   return OK;
 }

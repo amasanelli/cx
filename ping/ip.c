@@ -5,6 +5,7 @@ int ip_build_packet(u8 protocol, const u8 *src_ip, const u8 *dst_ip, const u8 *p
   static u16 g_ip_id = 1;
   u8 *buf = NULL;
   ip_hdr *hdr = NULL;
+  u32 pkt_size = 0;
 
   if (!out_pkt || !out_pkt_len || !src_ip || !dst_ip)
   {
@@ -22,14 +23,15 @@ int ip_build_packet(u8 protocol, const u8 *src_ip, const u8 *dst_ip, const u8 *p
   }
 
   *out_pkt = NULL;
-  *out_pkt_len = (u32)sizeof(ip_hdr) + pld_len;
+  *out_pkt_len = 0;
+  pkt_size = (u32)sizeof(ip_hdr) + pld_len;
 
-  buf = (u8 *)malloc(*out_pkt_len);
+  buf = (u8 *)malloc(pkt_size);
   if (!buf)
   {
     return ERR;
   }
-  memset(buf, 0, *out_pkt_len);
+  memset(buf, 0, pkt_size);
 
   hdr = (ip_hdr *)buf;
 
@@ -37,7 +39,7 @@ int ip_build_packet(u8 protocol, const u8 *src_ip, const u8 *dst_ip, const u8 *p
   hdr->ihl = 5;                                /* 20 bytes, no options */
   hdr->dscp = 0;                               /* default service class, no priority */
   hdr->ecn = 0;                                /* no congestion notification */
-  write_be16((u16)*out_pkt_len, hdr->tot_len); /* header + payload size */
+  write_be16((u16)pkt_size, hdr->tot_len);     /* header + payload size */
   write_be16(g_ip_id++, hdr->id);              /* unique per-packet, auto-incremented */
   hdr->flags = 0;                              /* fragmentation allowed */
   hdr->frag_off = 0;                           /* not a fragment */
@@ -55,6 +57,7 @@ int ip_build_packet(u8 protocol, const u8 *src_ip, const u8 *dst_ip, const u8 *p
   }
 
   *out_pkt = buf;
+  *out_pkt_len = pkt_size;
 
   return OK;
 }
@@ -75,6 +78,8 @@ int parse_ip(const u8 *ip_str, u8 *out_ip)
   {
     return ERR;
   }
+
+  memset(out_ip, 0, IP_ADDR_LEN);
 
   for (i = 0; i < 4; i++)
   {
@@ -129,6 +134,8 @@ int ip_string(const u8 *ip_addr, u8 *out_str, u32 out_str_len)
   {
     return ERR;
   }
+
+  out_str[0] = '\0';
 
   for (i = 0; i < 4; i++)
   {

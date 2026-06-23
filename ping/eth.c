@@ -4,6 +4,7 @@ int eth_build_packet(const u8 *dst_mac, const u8 *src_mac, u16 ethertype, const 
 {
   u8 *buf = NULL;
   eth_hdr *hdr = NULL;
+  u32 pkt_size = 0;
 
   if (!out_pkt || !out_pkt_len || !dst_mac || !src_mac)
   {
@@ -21,14 +22,15 @@ int eth_build_packet(const u8 *dst_mac, const u8 *src_mac, u16 ethertype, const 
   }
 
   *out_pkt = NULL;
-  *out_pkt_len = (u32)sizeof(eth_hdr) + pld_len;
+  *out_pkt_len = 0;
+  pkt_size = (u32)sizeof(eth_hdr) + pld_len;
 
-  buf = (u8 *)malloc(*out_pkt_len);
+  buf = (u8 *)malloc(pkt_size);
   if (!buf)
   {
     return ERR;
   }
-  memset(buf, 0, *out_pkt_len);
+  memset(buf, 0, pkt_size);
 
   hdr = (eth_hdr *)buf;
 
@@ -42,6 +44,7 @@ int eth_build_packet(const u8 *dst_mac, const u8 *src_mac, u16 ethertype, const 
   }
 
   *out_pkt = buf;
+  *out_pkt_len = pkt_size;
 
   return OK;
 }
