@@ -32,13 +32,16 @@ int ping(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *dst_ip, cons
   if (build_ip_icmp_packet(src_ip, dst_ip, icmp_pkt, icmp_len, &ip_pkt, &ip_len) != OK)
   {
     free(icmp_pkt);
+    icmp_pkt = NULL;
     return ERR;
   }
 
   if (build_eth_ip_packet(dst_mac, src_mac, ip_pkt, ip_len, &eth_pkt, &eth_len) != OK)
   {
     free(icmp_pkt);
+    icmp_pkt = NULL;
     free(ip_pkt);
+    ip_pkt = NULL;
     return ERR;
   }
 
@@ -58,6 +61,7 @@ int ping(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *dst_ip, cons
   if (send_packet(skt, addr, eth_pkt, eth_len) != OK)
   {
     free(eth_pkt);
+    eth_pkt = NULL;
     return ERR;
   }
 
@@ -154,7 +158,7 @@ int arp_resolve(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *src_m
 
   memset(out_dst_mac, 0, ETH_ADDR_LEN);
 
-  if (arp_build_packet(src_ip, src_mac, dst_ip, &arp_pkt, &arp_len) != OK)
+  if (arp_build_request_packet(src_ip, src_mac, dst_ip, &arp_pkt, &arp_len) != OK)
   {
     return ERR;
   }
@@ -162,6 +166,7 @@ int arp_resolve(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *src_m
   if (build_eth_arp_packet(broadcast, src_mac, arp_pkt, arp_len, &eth_pkt, &eth_len) != OK)
   {
     free(arp_pkt);
+    arp_pkt = NULL;
     return ERR;
   }
 
@@ -176,6 +181,7 @@ int arp_resolve(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *src_m
   if (send_packet(skt, addr, eth_pkt, eth_len) != OK)
   {
     free(eth_pkt);
+    eth_pkt = NULL;
     return ERR;
   }
 
@@ -233,43 +239,113 @@ int arp_resolve(int skt, const skt_addr *addr, const u8 *src_ip, const u8 *src_m
 
 int pong(int skt)
 {
-  u8 buf[sizeof(eth_hdr) + ETH_MAX_PLD_SIZE] = {0};
-  u32 n_recv = 0;
+  const arp_hdr *arphdr = NULL;
   const eth_hdr *ethhdr = NULL;
-  const ip_hdr *iphdr = NULL;
   const icmp_hdr *icmphdr = NULL;
-  u32 ip_hdr_len = 0;
-  u32 icmp_len = 0;
+  const ip_hdr *iphdr = NULL;
   const u8 *pld = NULL;
-  u32 pld_len = 0;
-  u16 id = 0;
-  u16 seq = 0;
-  u8 sender_mac[ETH_ADDR_LEN] = {0};
-  u8 sender_ip[IP_ADDR_LEN] = {0};
   iface_info iface = {0};
   skt_addr addr = {0};
-  u8 *reply_icmp = NULL;
-  u32 reply_icmp_len = 0;
-  u8 *reply_ip = NULL;
-  u32 reply_ip_len = 0;
-  u8 *reply_eth = NULL;
-  u32 reply_eth_len = 0;
-  const ip_hdr *reply_iphdr = NULL;
-  u32 reply_ip_hdr_len = 0;
-  int ret = OK;
+  u16 id = 0;
+  u16 seq = 0;
+  u32 arp_len = 0;
+  u32 eth_len = 0;
+  u32 icmp_len = 0;
+  u32 ip_hdr_len = 0;
+  u32 ip_len = 0;
+  u32 n_recv = 0;
+  u32 pld_len = 0;
+  u8 *arp_pkt = NULL;
+  u8 *eth_pkt = NULL;
+  u8 *icmp_pkt = NULL;
+  u8 *ip_pkt = NULL;
+  u8 buf[sizeof(eth_hdr) + ETH_MAX_PLD_SIZE] = {0};
 
   if (receive_packet(skt, buf, sizeof(buf), &n_recv) != OK)
   {
     return ERR;
   }
 
-  if (n_recv < (u32)(sizeof(eth_hdr) + sizeof(ip_hdr) + sizeof(icmp_hdr)))
+  if (n_recv < (u32)(sizeof(eth_hdr) + sizeof(arp_hdr)))
   {
     return OK;
   }
 
   ethhdr = (const eth_hdr *)buf;
+
+  if (read_be16(ethhdr->ethertype) == ETHER_TYPE_ARP)
+  {
+    arphdr = (const arp_hdr *)(buf + sizeof(eth_hdr));
+
+    if (read_be16(arphdr->hw_type) != ARP_HW_ETHER)
+    {
+      return OK;
+    }
+    if (read_be16(arphdr->proto_type) != ARP_PROTO_IP)
+    {
+      return OK;
+    }
+    if (read_be16(arphdr->opcode) != ARP_OPCODE_REQUEST)
+    {
+      return OK;
+    }
+
+    if (get_iface_info(skt, arphdr->target_ip, &iface) != OK)
+    {
+      return OK;
+    }
+    if (memcmp(arphdr->target_ip, iface.ip, IP_ADDR_LEN) != 0)
+    {
+      return OK;
+    }
+
+    if (build_socket_address(iface.index, &addr) != OK)
+    {
+      return ERR;
+    }
+
+    printf("----- ARP REQUEST -----\n");
+    print_eth_packet(buf, n_recv);
+    print_arp_packet(buf + sizeof(eth_hdr), n_recv - (u32)sizeof(eth_hdr));
+    printf("\n");
+
+    if (arp_build_reply_packet(iface.ip, iface.mac, arphdr->sender_ip, arphdr->sender_mac, &arp_pkt, &arp_len) != OK)
+    {
+      return ERR;
+    }
+
+    if (build_eth_arp_packet(arphdr->sender_mac, iface.mac, arp_pkt, arp_len, &eth_pkt, &eth_len) != OK)
+    {
+      free(arp_pkt);
+      arp_pkt = NULL;
+      return ERR;
+    }
+
+    free(arp_pkt);
+    arp_pkt = NULL;
+
+    printf("----- ARP REPLY -----\n");
+    print_eth_packet(eth_pkt, eth_len);
+    print_arp_packet(eth_pkt + sizeof(eth_hdr), eth_len - (u32)sizeof(eth_hdr));
+    printf("\n");
+
+    if (send_packet(skt, &addr, eth_pkt, eth_len) != OK)
+    {
+      free(eth_pkt);
+      eth_pkt = NULL;
+      return ERR;
+    }
+
+    free(eth_pkt);
+    eth_pkt = NULL;
+    return OK;
+  }
+
   if (read_be16(ethhdr->ethertype) != ETHER_TYPE_IP)
+  {
+    return OK;
+  }
+  if (n_recv < (u32)(sizeof(eth_hdr) + sizeof(ip_hdr) + sizeof(icmp_hdr)))
   {
     return OK;
   }
@@ -280,12 +356,10 @@ int pong(int skt)
     return OK;
   }
   ip_hdr_len = iphdr->ihl * 4U;
-
   if (n_recv < (u32)sizeof(eth_hdr) + ip_hdr_len + (u32)sizeof(icmp_hdr))
   {
     return OK;
   }
-
   if (iphdr->protocol != IP_PROTO_ICMP)
   {
     return OK;
@@ -297,12 +371,14 @@ int pong(int skt)
     return OK;
   }
 
-  /* resolve which local iface owns the dst IP; drops packets not destined to us */
   if (get_iface_info(skt, iphdr->dst, &iface) != OK)
   {
     return OK;
   }
-
+  if (memcmp(iphdr->dst, iface.ip, IP_ADDR_LEN) != 0)
+  {
+    return OK;
+  }
   if (build_socket_address(iface.index, &addr) != OK)
   {
     return ERR;
@@ -314,50 +390,53 @@ int pong(int skt)
   pld = buf + sizeof(eth_hdr) + ip_hdr_len + sizeof(icmp_hdr);
   pld_len = icmp_len - (u32)sizeof(icmp_hdr);
 
-  memcpy(sender_mac, ethhdr->src, ETH_ADDR_LEN);
-  memcpy(sender_ip, iphdr->src, IP_ADDR_LEN);
-
   printf("----- REQUEST (seq=%d) -----\n", seq);
   print_eth_packet(buf, n_recv);
   print_ip_packet(buf + (u32)sizeof(eth_hdr), n_recv - (u32)sizeof(eth_hdr));
   print_icmp_packet(buf + (u32)sizeof(eth_hdr) + ip_hdr_len, icmp_len);
   printf("\n");
 
-  if (icmp_build_packet(ICMP_ECHO_REPLY, 0, id, seq, pld, pld_len, &reply_icmp, &reply_icmp_len) != OK)
+  if (build_pong_packet(id, seq, pld, pld_len, &icmp_pkt, &icmp_len) != OK)
   {
     return ERR;
   }
 
-  if (build_ip_icmp_packet(iface.ip, sender_ip, reply_icmp, reply_icmp_len, &reply_ip, &reply_ip_len) != OK)
+  if (build_ip_icmp_packet(iface.ip, iphdr->src, icmp_pkt, icmp_len, &ip_pkt, &ip_len) != OK)
   {
-    free(reply_icmp);
+    free(icmp_pkt);
+    icmp_pkt = NULL;
     return ERR;
   }
 
-  if (build_eth_ip_packet(sender_mac, iface.mac, reply_ip, reply_ip_len, &reply_eth, &reply_eth_len) != OK)
+  free(icmp_pkt);
+  icmp_pkt = NULL;
+
+  if (build_eth_ip_packet(ethhdr->src, iface.mac, ip_pkt, ip_len, &eth_pkt, &eth_len) != OK)
   {
-    free(reply_icmp);
-    free(reply_ip);
+    free(ip_pkt);
+    ip_pkt = NULL;
     return ERR;
   }
 
-  free(reply_icmp);
-  reply_icmp = NULL;
-  free(reply_ip);
-  reply_ip = NULL;
+  free(ip_pkt);
+  ip_pkt = NULL;
 
-  reply_iphdr = (const ip_hdr *)(reply_eth + sizeof(eth_hdr));
-  reply_ip_hdr_len = reply_iphdr->ihl * 4U;
+  ip_hdr_len = ((const ip_hdr *)(eth_pkt + sizeof(eth_hdr)))->ihl * 4U;
 
   printf("----- REPLY (seq=%d) -----\n", seq);
-  print_eth_packet(reply_eth, reply_eth_len);
-  print_ip_packet(reply_eth + (u32)sizeof(eth_hdr), reply_eth_len - (u32)sizeof(eth_hdr));
-  print_icmp_packet(reply_eth + (u32)sizeof(eth_hdr) + reply_ip_hdr_len, reply_eth_len - (u32)sizeof(eth_hdr) - reply_ip_hdr_len);
+  print_eth_packet(eth_pkt, eth_len);
+  print_ip_packet(eth_pkt + (u32)sizeof(eth_hdr), eth_len - (u32)sizeof(eth_hdr));
+  print_icmp_packet(eth_pkt + (u32)sizeof(eth_hdr) + ip_hdr_len, eth_len - (u32)sizeof(eth_hdr) - ip_hdr_len);
   printf("\n");
 
-  ret = send_packet(skt, &addr, reply_eth, reply_eth_len);
+  if (send_packet(skt, &addr, eth_pkt, eth_len) != OK)
+  {
+    free(eth_pkt);
+    eth_pkt = NULL;
+    return ERR;
+  }
 
-  free(reply_eth);
-
-  return ret;
+  free(eth_pkt);
+  eth_pkt = NULL;
+  return OK;
 }

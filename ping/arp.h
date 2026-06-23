@@ -27,8 +27,11 @@ typedef struct __attribute__((packed))
   u8 target_ip[4];   /* target protocol address */
 } arp_hdr;
 
-/* build a 28-byte ARP request payload (no ETH wrapper) */
-int arp_build_packet(const u8 *src_ip, const u8 *src_mac, const u8 *dst_ip, u8 **out_pkt, u32 *out_pkt_len);
+int arp_build_packet(const u8 *src_ip, const u8 *src_mac, const u8 *dst_ip, const u8 *dst_mac, u16 opcode, u8 **out_pkt, u32 *out_pkt_len);
+
+int arp_build_request_packet(const u8 *src_ip, const u8 *src_mac, const u8 *dst_ip, u8 **out_pkt, u32 *out_pkt_len);
+
+int arp_build_reply_packet(const u8 *src_ip, const u8 *src_mac, const u8 *dst_ip, const u8 *dst_mac, u8 **out_pkt, u32 *out_pkt_len);
 
 int print_arp_packet(const u8 *pkt, u32 pkt_len);
 

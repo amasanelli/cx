@@ -1,11 +1,11 @@
 #include "arp.h"
 
-int arp_build_packet(const u8 *src_ip, const u8 *src_mac, const u8 *dst_ip, u8 **out_pkt, u32 *out_pkt_len)
+int arp_build_packet(const u8 *src_ip, const u8 *src_mac, const u8 *dst_ip, const u8 *dst_mac, u16 opcode, u8 **out_pkt, u32 *out_pkt_len)
 {
   u8 *buf = NULL;
   arp_hdr *hdr = NULL;
 
-  if (!out_pkt || !out_pkt_len || !src_ip || !src_mac || !dst_ip)
+  if (!src_ip || !src_mac || !dst_ip || !out_pkt || !out_pkt_len)
   {
     return ERR;
   }
@@ -26,16 +26,29 @@ int arp_build_packet(const u8 *src_ip, const u8 *src_mac, const u8 *dst_ip, u8 *
   write_be16(ARP_PROTO_IP, hdr->proto_type);
   hdr->hw_addr_len = (u8)ETH_ADDR_LEN;
   hdr->proto_addr_len = 4;
-  write_be16((u16)ARP_OPCODE_REQUEST, hdr->opcode);
+  write_be16(opcode, hdr->opcode);
 
   memcpy(hdr->sender_mac, src_mac, ETH_ADDR_LEN);
   memcpy(hdr->sender_ip, src_ip, 4);
-  /* target_mac: stays zero — that's what we're trying to discover */
+  if (dst_mac)
+  {
+    memcpy(hdr->target_mac, dst_mac, ETH_ADDR_LEN);
+  }
   memcpy(hdr->target_ip, dst_ip, 4);
 
   *out_pkt = buf;
 
   return OK;
+}
+
+int arp_build_request_packet(const u8 *src_ip, const u8 *src_mac, const u8 *dst_ip, u8 **out_pkt, u32 *out_pkt_len)
+{
+  return arp_build_packet(src_ip, src_mac, dst_ip, NULL, (u16)ARP_OPCODE_REQUEST, out_pkt, out_pkt_len);
+}
+
+int arp_build_reply_packet(const u8 *src_ip, const u8 *src_mac, const u8 *dst_ip, const u8 *dst_mac, u8 **out_pkt, u32 *out_pkt_len)
+{
+  return arp_build_packet(src_ip, src_mac, dst_ip, dst_mac, (u16)ARP_OPCODE_REPLY, out_pkt, out_pkt_len);
 }
 
 int print_arp_packet(const u8 *pkt, u32 pkt_len)

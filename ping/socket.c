@@ -83,7 +83,7 @@ int receive_packet(int skt, u8 *buf, u32 buff_len, u32 *n_recv)
   return OK;
 }
 
-int set_recv_timeout(int skt, u32 seconds)
+int set_socket_timeouts(int skt, u32 seconds)
 {
   struct timeval tv = {0};
 
@@ -91,6 +91,11 @@ int set_recv_timeout(int skt, u32 seconds)
   tv.tv_usec = 0;
 
   if (setsockopt(skt, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
+  {
+    return ERR;
+  }
+
+  if (setsockopt(skt, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0)
   {
     return ERR;
   }
@@ -173,18 +178,18 @@ static int read_route_info(const u8 *dst_ip, u8 *out_name, u8 *out_netmask, u8 *
   return found ? OK : ERR;
 }
 
-int get_iface_info(int skt, const u8 *dst_ip, iface_info *out)
+int get_iface_info(int skt, const u8 *ip, iface_info *out)
 {
   struct ifreq ifr = {0};
 
-  if (!dst_ip || !out)
+  if (!ip || !out)
   {
     return ERR;
   }
 
   memset(out, 0, sizeof(*out));
 
-  if (read_route_info(dst_ip, out->name, out->netmask, out->gateway) != OK)
+  if (read_route_info(ip, out->name, out->netmask, out->gateway) != OK)
   {
     return ERR;
   }

@@ -55,6 +55,11 @@ int build_ping_packet(u16 id, u16 seq, const u8 *pld, u32 pld_len, u8 **out_pkt,
   return icmp_build_packet(ICMP_ECHO_REQUEST, 0, id, seq, pld, pld_len, out_pkt, out_pkt_len);
 }
 
+int build_pong_packet(u16 id, u16 seq, const u8 *pld, u32 pld_len, u8 **out_pkt, u32 *out_pkt_len)
+{
+  return icmp_build_packet(ICMP_ECHO_REPLY, 0, id, seq, pld, pld_len, out_pkt, out_pkt_len);
+}
+
 int print_icmp_packet(const u8 *pkt, u32 pkt_len)
 {
   const icmp_hdr *hdr = NULL;

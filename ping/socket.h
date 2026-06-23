@@ -3,7 +3,7 @@
 
 #include <stdio.h>      /* fopen, fgets, sscanf, fclose */
 #include <string.h>     /* memset, memcpy, strncpy */
-#include <sys/socket.h> /* socket, sendto, recvfrom, setsockopt, struct sockaddr, ssize_t, AF_PACKET, SOCK_RAW, SO_RCVTIMEO */
+#include <sys/socket.h> /* socket, sendto, recvfrom, setsockopt, struct sockaddr, ssize_t, AF_PACKET, SOCK_RAW, SO_RCVTIMEO, SO_SNDTIMEO */
 #include <sys/time.h>   /* struct timeval */
 #include <sys/ioctl.h>  /* ioctl, SIOCGIFINDEX, SIOCGIFADDR, SIOCGIFHWADDR */
 #include <netinet/in.h> /* struct sockaddr_in */
@@ -40,18 +40,18 @@ int build_socket_address(u32 if_i, skt_addr *out_addr);
 
 int receive_packet(int skt, u8 *buf, u32 buff_len, u32 *n_recv);
 
-int set_recv_timeout(int skt, u32 seconds);
+int set_socket_timeouts(int skt, u32 seconds);
 
 typedef struct
 {
-  u8  name[IFNAMSIZ];
+  u8 name[IFNAMSIZ];
   u32 index;
-  u8  ip[IP_ADDR_LEN];
-  u8  mac[ETH_ADDR_LEN];
-  u8  netmask[IP_ADDR_LEN];
-  u8  gateway[IP_ADDR_LEN];
+  u8 ip[IP_ADDR_LEN];
+  u8 mac[ETH_ADDR_LEN];
+  u8 netmask[IP_ADDR_LEN];
+  u8 gateway[IP_ADDR_LEN];
 } iface_info;
 
-int get_iface_info(int skt, const u8 *dst_ip, iface_info *out);
+int get_iface_info(int skt, const u8 *ip, iface_info *out);
 
 #endif

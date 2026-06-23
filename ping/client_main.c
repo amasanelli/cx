@@ -61,9 +61,9 @@ int main(int argc, char **argv)
     memcpy(arp_ip_dst, iface.gateway, IP_ADDR_LEN);
   }
 
-  if (set_recv_timeout(skt, ARP_TIMEOUT_SEC) != OK)
+  if (set_socket_timeouts(skt, ARP_TIMEOUT_SEC) != OK)
   {
-    perror("set_recv_timeout");
+    perror("set_socket_timeouts");
     close(skt);
     return 1;
   }
@@ -75,9 +75,9 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  if (set_recv_timeout(skt, PING_TIMEOUT_SEC) != OK)
+  if (set_socket_timeouts(skt, PING_TIMEOUT_SEC) != OK)
   {
-    perror("set_recv_timeout");
+    perror("set_socket_timeouts");
     close(skt);
     return 1;
   }
