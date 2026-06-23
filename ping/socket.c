@@ -103,22 +103,20 @@ int set_socket_timeouts(int skt, u32 seconds)
   return OK;
 }
 
-/* single pass through /proc/net/route: resolves iface name, netmask, and gateway for dst_ip */
-static int read_route_info(const u8 *dst_ip, u8 *out_name, u8 *out_netmask, u8 *out_gateway)
+/* scan /proc/net/route for the best gateway on a specific interface (longest-prefix-match) */
+static int read_gateway(const u8 *iface_name, u8 *out_gateway)
 {
   FILE *f = NULL;
   char line[256] = {0};
   char r_iface[IFNAMSIZ] = {0};
-  u32 dest = 0;
   u32 gw = 0;
   u32 flags = 0;
   u32 mask = 0;
-  int n = 0;
-  u32 dst_le = 0;
   u32 best_mask = 0;
+  int n = 0;
   bool found = FALSE;
 
-  dst_le = (u32)dst_ip[0] | ((u32)dst_ip[1] << 8) | ((u32)dst_ip[2] << 16) | ((u32)dst_ip[3] << 24);
+  memset(out_gateway, 0, IP_ADDR_LEN);
 
   f = fopen("/proc/net/route", "r");
   if (!f)
@@ -135,85 +133,141 @@ static int read_route_info(const u8 *dst_ip, u8 *out_name, u8 *out_netmask, u8 *
   while (fgets(line, (int)sizeof(line), f))
   {
     /* columns: Iface Dest GW Flags RefCnt Use Metric Mask MTU Window IRTT */
-    n = sscanf(line, "%15s %x %x %x %*u %*u %*u %x", r_iface, &dest, &gw, &flags, &mask);
-    if (n != 5)
+    n = sscanf(line, "%15s %*x %x %x %*u %*u %*u %x", r_iface, &gw, &flags, &mask);
+    if (n != 4)
     {
       continue;
     }
-    if (!(flags & RTF_UP))
+    if (strcmp(r_iface, (const char *)iface_name) != 0)
     {
       continue;
     }
-    if ((dst_le & mask) != dest)
+    if (!(flags & RTF_UP) || !(flags & RTF_GATEWAY))
     {
       continue;
     }
     if (!found || mask > best_mask)
     {
       best_mask = mask;
-      memset(out_name, 0, IFNAMSIZ);
-      memcpy(out_name, r_iface, IFNAMSIZ - 1);
-      out_name[IFNAMSIZ - 1] = '\0';
-      /* route table mask is LE u32; extract octets in order */
-      memset(out_netmask, 0, IP_ADDR_LEN);
-      out_netmask[0] = (u8)(mask & 0xFF);
-      out_netmask[1] = (u8)((mask >> 8) & 0xFF);
-      out_netmask[2] = (u8)((mask >> 16) & 0xFF);
-      out_netmask[3] = (u8)((mask >> 24) & 0xFF);
-      /* gateway from this route: non-zero only when RTF_GATEWAY is set */
-      memset(out_gateway, 0, IP_ADDR_LEN);
-      if (flags & RTF_GATEWAY)
-      {
-        out_gateway[0] = (u8)(gw & 0xFF);
-        out_gateway[1] = (u8)((gw >> 8) & 0xFF);
-        out_gateway[2] = (u8)((gw >> 16) & 0xFF);
-        out_gateway[3] = (u8)((gw >> 24) & 0xFF);
-      }
+      out_gateway[0] = (u8)(gw & 0xFF);
+      out_gateway[1] = (u8)((gw >> 8) & 0xFF);
+      out_gateway[2] = (u8)((gw >> 16) & 0xFF);
+      out_gateway[3] = (u8)((gw >> 24) & 0xFF);
       found = TRUE;
     }
   }
 
   fclose(f);
-
-  return found ? OK : ERR;
+  return OK; /* gateway stays zero when no RTF_GATEWAY route exists (on-link) */
 }
 
-int get_iface_info(int skt, const u8 *ip, iface_info *out)
+int get_iface_info(const u8 *dst_ip, iface_info *out)
 {
-  struct ifreq ifr = {0};
+  int skt = -1;
+  struct sockaddr_in dst = {0};
+  struct sockaddr_in src = {0};
+  struct sockaddr_ll *ll = NULL;
+  socklen_t slen = sizeof(src);
+  struct ifaddrs *ifas = NULL;
+  struct ifaddrs *ifa = NULL;
 
-  if (!ip || !out)
+  if (!dst_ip || !out)
   {
     return ERR;
   }
 
   memset(out, 0, sizeof(*out));
 
-  if (read_route_info(ip, out->name, out->netmask, out->gateway) != OK)
+  skt = socket(AF_INET, SOCK_DGRAM, 0);
+  if (skt < 0)
   {
     return ERR;
   }
 
-  memset(&ifr, 0, sizeof(ifr));
-  memcpy(ifr.ifr_name, out->name, IFNAMSIZ - 1);
+  dst.sin_family = AF_INET;
+  memcpy(&dst.sin_addr.s_addr, dst_ip, IP_ADDR_LEN);
+  write_be16(1, (u8 *)&dst.sin_port); /* non-zero port required; no packet is sent */
 
-  if (ioctl(skt, SIOCGIFINDEX, &ifr) < 0)
+  if (connect(skt, (struct sockaddr *)&dst, sizeof(dst)) < 0)
+  {
+    close(skt);
+    return ERR;
+  }
+
+  if (getsockname(skt, (struct sockaddr *)&src, &slen) < 0)
+  {
+    close(skt);
+    return ERR;
+  }
+
+  if (getifaddrs(&ifas) < 0)
+  {
+    close(skt);
+    return ERR;
+  }
+
+  for (ifa = ifas; ifa; ifa = ifa->ifa_next)
+  {
+    if (!ifa->ifa_addr || ifa->ifa_addr->sa_family != AF_INET)
+    {
+      continue;
+    }
+    if (((struct sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr != src.sin_addr.s_addr)
+    {
+      continue;
+    }
+    break;
+  }
+
+  close(skt);
+
+  if (!ifa)
+  {
+    freeifaddrs(ifas);
+    return ERR;
+  }
+
+  memcpy(out->ip, &src.sin_addr.s_addr, IP_ADDR_LEN);
+  if (ifa->ifa_netmask)
+  {
+    memcpy(out->netmask, &((struct sockaddr_in *)ifa->ifa_netmask)->sin_addr.s_addr, IP_ADDR_LEN);
+  }
+  memcpy(out->name, ifa->ifa_name, IFNAMSIZ - 1);
+
+  for (ifa = ifas; ifa; ifa = ifa->ifa_next)
+  {
+    if (!ifa->ifa_addr || ifa->ifa_addr->sa_family != AF_PACKET)
+    {
+      continue;
+    }
+    if (strcmp(ifa->ifa_name, (char *)out->name) != 0)
+    {
+      continue;
+    }
+    break;
+  }
+
+  if (!ifa)
+  {
+    freeifaddrs(ifas);
+    return ERR;
+  }
+
+  ll = (struct sockaddr_ll *)ifa->ifa_addr;
+  if (ll->sll_halen < ETH_ADDR_LEN)
+  {
+    freeifaddrs(ifas);
+    return ERR;
+  }
+  out->index = (u32)ll->sll_ifindex;
+  memcpy(out->mac, ll->sll_addr, ETH_ADDR_LEN);
+
+  freeifaddrs(ifas);
+
+  if (read_gateway(out->name, out->gateway) != OK)
   {
     return ERR;
   }
-  out->index = (u32)ifr.ifr_ifindex;
-
-  if (ioctl(skt, SIOCGIFADDR, &ifr) < 0)
-  {
-    return ERR;
-  }
-  memcpy(out->ip, &((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr, IP_ADDR_LEN);
-
-  if (ioctl(skt, SIOCGIFHWADDR, &ifr) < 0)
-  {
-    return ERR;
-  }
-  memcpy(out->mac, ifr.ifr_hwaddr.sa_data, ETH_ADDR_LEN);
 
   return OK;
 }

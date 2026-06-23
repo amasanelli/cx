@@ -9,6 +9,8 @@ int main(int argc, char **argv)
   iface_info iface = {0};
   skt_addr addr = {0};
   int skt = -1;
+  u32 i = 0;
+  bool on_link = TRUE;
 
   u16 seq = 0;
   u32 sent = 0;
@@ -36,13 +38,20 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  if (get_iface_info(skt, dst_ip, &iface) != OK)
+  if (get_iface_info(dst_ip, &iface) != OK)
   {
     fprintf(stderr, "no route to host: %s\n", argv[1]);
     close(skt);
     return 1;
   }
   printf("using interface: %s\n\n", iface.name);
+
+  if (memcmp(dst_ip, iface.ip, IP_ADDR_LEN) == 0)
+  {
+    fprintf(stderr, "cannot ping own address via raw ethernet socket\n");
+    close(skt);
+    return 1;
+  }
 
   if (build_socket_address(iface.index, &addr) != OK)
   {
@@ -51,8 +60,16 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  /* gateway non-zero means routing table says forward via gateway; zero means direct delivery */
-  if (iface.gateway[0] == 0 && iface.gateway[1] == 0 && iface.gateway[2] == 0 && iface.gateway[3] == 0)
+  on_link = TRUE;
+  for (i = 0; i < (u32)IP_ADDR_LEN; i++)
+  {
+    if ((dst_ip[i] & iface.netmask[i]) != (iface.ip[i] & iface.netmask[i]))
+    {
+      on_link = FALSE;
+      break;
+    }
+  }
+  if (on_link)
   {
     memcpy(arp_ip_dst, dst_ip, IP_ADDR_LEN);
   }

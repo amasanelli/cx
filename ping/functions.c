@@ -290,7 +290,7 @@ int pong(int skt)
       return OK;
     }
 
-    if (get_iface_info(skt, arphdr->target_ip, &iface) != OK)
+    if (get_iface_info(arphdr->target_ip, &iface) != OK)
     {
       return OK;
     }
@@ -371,7 +371,7 @@ int pong(int skt)
     return OK;
   }
 
-  if (get_iface_info(skt, iphdr->dst, &iface) != OK)
+  if (get_iface_info(iphdr->dst, &iface) != OK)
   {
     return OK;
   }
